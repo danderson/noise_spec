@@ -1,0 +1,3062 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <meta name="author" content="David Anderson (dave@natulte.net)" />
+  <meta name="date" content="2026-09-13" />
+  <title>The PQPQNoise Protocol Framework</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <link rel="stylesheet" href="spec_markdown.css" type="text/css" />
+</head>
+<body>
+<div id="header">
+<h1 class="title">The PQPQNoise Protocol Framework</h1>
+<b>Author:</b> David Anderson (dave@natulte.net)<br/>
+<b>Revision:</b> 1<br/>
+<b>Date:</b> 2026-09-13<br/>
+<b>Status:</b> unstable<br/>
+<b>PDF:</b> <a href="pqnoise.pdf">pqnoise.pdf</a><br/>
+</div>
+<div id="TOC">
+<h2 class="toc">Table of Contents</h2>
+<ul>
+<li><a href="#introduction" id="toc-introduction">1.
+Introduction</a></li>
+<li><a href="#overview" id="toc-overview">2. Overview</a>
+<ul>
+<li><a href="#terminology" id="toc-terminology">2.1.
+Terminology</a></li>
+<li><a href="#overview-of-handshake-state-machine"
+id="toc-overview-of-handshake-state-machine">2.2. Overview of handshake
+state machine</a></li>
+</ul></li>
+<li><a href="#message-format" id="toc-message-format">3. Message
+format</a></li>
+<li><a href="#crypto-functions" id="toc-crypto-functions">4. Crypto
+functions</a>
+<ul>
+<li><a href="#dh-functions" id="toc-dh-functions">4.1. DH
+functions</a></li>
+<li><a href="#cipher-functions" id="toc-cipher-functions">4.2. Cipher
+functions</a></li>
+<li><a href="#hash-functions" id="toc-hash-functions">4.3. Hash
+functions</a></li>
+</ul></li>
+<li><a href="#processing-rules" id="toc-processing-rules">5. Processing
+rules</a>
+<ul>
+<li><a href="#the-cipherstate-object"
+id="toc-the-cipherstate-object">5.1. The <code>CipherState</code>
+object</a></li>
+<li><a href="#the-symmetricstate-object"
+id="toc-the-symmetricstate-object">5.2. The <code>SymmetricState</code>
+object</a></li>
+<li><a href="#the-handshakestate-object"
+id="toc-the-handshakestate-object">5.3. The <code>HandshakeState</code>
+object</a></li>
+</ul></li>
+<li><a href="#prologue" id="toc-prologue">6. Prologue</a></li>
+<li><a href="#handshake-patterns" id="toc-handshake-patterns">7.
+Handshake patterns</a>
+<ul>
+<li><a href="#handshake-pattern-basics"
+id="toc-handshake-pattern-basics">7.1. Handshake pattern basics</a></li>
+<li><a href="#alice-and-bob" id="toc-alice-and-bob">7.2. Alice and
+Bob</a></li>
+<li><a href="#handshake-pattern-validity"
+id="toc-handshake-pattern-validity">7.3. Handshake pattern
+validity</a></li>
+<li><a href="#handshake-patterns-fundamental"
+id="toc-handshake-patterns-fundamental">7.4. Handshake patterns
+(fundamental)</a></li>
+<li><a href="#payload-security-properties"
+id="toc-payload-security-properties">7.5. Payload security
+properties</a></li>
+<li><a href="#identity-hiding" id="toc-identity-hiding">7.6. Identity
+hiding</a></li>
+</ul></li>
+<li><a href="#protocol-names-and-modifiers"
+id="toc-protocol-names-and-modifiers">8. Protocol names and
+modifiers</a>
+<ul>
+<li><a href="#handshake-pattern-name-section"
+id="toc-handshake-pattern-name-section">8.1. Handshake pattern name
+section</a></li>
+<li><a href="#cryptographic-algorithm-name-sections"
+id="toc-cryptographic-algorithm-name-sections">8.2. Cryptographic
+algorithm name sections</a></li>
+</ul></li>
+<li><a href="#pre-shared-symmetric-keys"
+id="toc-pre-shared-symmetric-keys">9. Pre-shared symmetric keys</a>
+<ul>
+<li><a href="#cryptographic-functions"
+id="toc-cryptographic-functions">9.1. Cryptographic functions</a></li>
+<li><a href="#handshake-tokens" id="toc-handshake-tokens">9.2. Handshake
+tokens</a></li>
+<li><a href="#validity-rule" id="toc-validity-rule">9.3. Validity
+rule</a></li>
+<li><a href="#pattern-modifiers" id="toc-pattern-modifiers">9.4. Pattern
+modifiers</a></li>
+</ul></li>
+<li><a href="#compound-protocols" id="toc-compound-protocols">10.
+Compound protocols</a>
+<ul>
+<li><a href="#rationale-for-compound-protocols"
+id="toc-rationale-for-compound-protocols">10.1. Rationale for compound
+protocols</a></li>
+</ul></li>
+<li><a href="#advanced-features" id="toc-advanced-features">11. Advanced
+features</a>
+<ul>
+<li><a href="#dummy-keys" id="toc-dummy-keys">11.1. Dummy keys</a></li>
+<li><a href="#channel-binding" id="toc-channel-binding">11.2. Channel
+binding</a></li>
+<li><a href="#rekey" id="toc-rekey">11.3. Rekey</a></li>
+<li><a href="#out-of-order-transport-messages"
+id="toc-out-of-order-transport-messages">11.4. Out-of-order transport
+messages</a></li>
+<li><a href="#half-duplex-protocols"
+id="toc-half-duplex-protocols">11.5. Half-duplex protocols</a></li>
+</ul></li>
+<li><a href="#dh-functions-cipher-functions-and-hash-functions"
+id="toc-dh-functions-cipher-functions-and-hash-functions">12. DH
+functions, cipher functions, and hash functions</a>
+<ul>
+<li><a href="#the-25519-dh-functions"
+id="toc-the-25519-dh-functions">12.1. The <code>25519</code> DH
+functions</a></li>
+<li><a href="#the-448-dh-functions" id="toc-the-448-dh-functions">12.2.
+The <code>448</code> DH functions</a></li>
+<li><a href="#the-chachapoly-cipher-functions"
+id="toc-the-chachapoly-cipher-functions">12.3. The
+<code>ChaChaPoly</code> cipher functions</a></li>
+<li><a href="#the-aesgcm-cipher-functions"
+id="toc-the-aesgcm-cipher-functions">12.4. The <code>AESGCM</code>
+cipher functions</a></li>
+<li><a href="#the-sha256-hash-function"
+id="toc-the-sha256-hash-function">12.5. The <code>SHA256</code> hash
+function</a></li>
+<li><a href="#the-sha512-hash-function"
+id="toc-the-sha512-hash-function">12.6. The <code>SHA512</code> hash
+function</a></li>
+<li><a href="#the-blake2s-hash-function"
+id="toc-the-blake2s-hash-function">12.7. The <code>BLAKE2s</code> hash
+function</a></li>
+<li><a href="#the-blake2b-hash-function"
+id="toc-the-blake2b-hash-function">12.8. The <code>BLAKE2b</code> hash
+function</a></li>
+</ul></li>
+<li><a href="#application-responsibilities"
+id="toc-application-responsibilities">13. Application
+responsibilities</a></li>
+<li><a href="#security-considerations"
+id="toc-security-considerations">14. Security considerations</a></li>
+<li><a href="#rationales" id="toc-rationales">15. Rationales</a>
+<ul>
+<li><a href="#ciphers-and-encryption"
+id="toc-ciphers-and-encryption">15.1. Ciphers and encryption</a></li>
+<li><a href="#hash-functions-and-hashing"
+id="toc-hash-functions-and-hashing">15.2. Hash functions and
+hashing</a></li>
+<li><a href="#other" id="toc-other">15.3. Other</a></li>
+</ul></li>
+<li><a href="#ipr" id="toc-ipr">16. IPR</a></li>
+<li><a href="#acknowledgements" id="toc-acknowledgements">17.
+Acknowledgements</a></li>
+<li><a href="#appendices" id="toc-appendices">18. Appendices</a>
+<ul>
+<li><a href="#deferred-patterns" id="toc-deferred-patterns">18.1.
+Deferred patterns</a></li>
+<li><a href="#security-properties-for-deferred-patterns"
+id="toc-security-properties-for-deferred-patterns">18.2. Security
+properties for deferred patterns</a></li>
+<li><a href="#pattern-derivation-rules"
+id="toc-pattern-derivation-rules">18.3. Pattern derivation
+rules</a></li>
+<li><a href="#change-log" id="toc-change-log">18.4. Change log</a></li>
+</ul></li>
+<li><a href="#references" id="toc-references">19. References</a></li>
+</ul>
+</div>
+<h1 id="introduction">1. Introduction</h1>
+<p>PQPQNoise is a framework for crypto protocols based on KEM
+ciphertexts. It is a continuation of the classic Noise protocol
+framework, modified to be resistant to quantum computer attacks.</p>
+<h1 id="overview">2. Overview</h1>
+<h2 id="terminology">2.1. Terminology</h2>
+<p>A PQNoise protocol begins with two parties exchanging
+<strong>handshake messages</strong>. During this <strong>handshake
+phase</strong> the parties exchange KEM keys and ciphertexts, hashing
+the KEM secrets into a shared secret key. After the handshake phase each
+party can use this shared key to send encrypted <strong>transport
+messages</strong>.</p>
+<p>The PQNoise framework supports handshakes where each party has a
+long-term <strong>static key pair</strong> and/or an <strong>ephemeral
+key pair</strong>. A PQNoise handshake is described by a simple
+language. This language consists of <strong>tokens</strong> which are
+arranged into <strong>message patterns</strong>. Message patterns are
+arranged into <strong>handshake patterns</strong>.</p>
+<p>A <strong>message pattern</strong> is a sequence of tokens that
+specifies the KEM public keys that comprise a handshake message, and the
+KEM operations that are performed when sending or receiving that
+message. A <strong>handshake pattern</strong> specifies the sequential
+exchange of messages that comprise a handshake.</p>
+<p>A handshake pattern can be instantiated by <strong>KEM
+functions</strong>, <strong>cipher functions</strong>, and <strong>hash
+functions</strong> to give a concrete <strong>PQNoise
+protocol</strong>.</p>
+<h2 id="overview-of-handshake-state-machine">2.2. Overview of handshake
+state machine</h2>
+<p>The core of PQNoise is a set of variables maintained by each party
+during a handshake, and rules for sending and receiving handshake
+messages by sequentially processing the tokens from a message
+pattern.</p>
+<p>Each party maintains the following variables:</p>
+<ul>
+<li><p><strong><code>s, e</code></strong>: The local party’s static and
+ephemeral key pairs (which may be empty).</p></li>
+<li><p><strong><code>rs, re</code></strong>: The remote party’s static
+and ephemeral public keys (which may be empty).</p></li>
+<li><p><strong><code>h</code></strong>: A <strong>handshake
+hash</strong> value that hashes all the handshake data that’s been sent
+and received.</p></li>
+<li><p><strong><code>ck</code></strong>: A <strong>chaining key</strong>
+that hashes all previous KEM secrets. Once the handshake completes, the
+chaining key will be used to derive the encryption keys for transport
+messages.</p></li>
+<li><p><strong><code>k, n</code></strong>: An encryption key
+<code>k</code> (which may be empty) and a counter-based nonce
+<code>n</code>. Whenever a new KEM operation causes a new
+<code>ck</code> to be calculated, a new <code>k</code> is also
+calculated. The key <code>k</code> and nonce <code>n</code> are used to
+encrypt static public keys and handshake payloads. Encryption with
+<code>k</code> uses some <strong>AEAD</strong> cipher mode (in the sense
+of Rogaway <span class="citation" data-cites="Rogaway:2002"><a
+href="#ref-Rogaway:2002" role="doc-biblioref">[1]</a></span>) and uses
+the current <code>h</code> value as <strong>associated data</strong>
+which is covered by the AEAD authentication. Encryption of static public
+keys and payloads provides some confidentiality and key confirmation
+during the handshake phase.</p></li>
+</ul>
+<p>A handshake message consists of some KEM public keys or ciphertext,
+followed by a <strong>payload</strong>. The payload may contain
+certificates or other data chosen by the application. To send a
+handshake message, the sender specifies the payload and sequentially
+processes each token from a message pattern. The possible tokens
+are:</p>
+<ul>
+<li><p><strong><code>"e"</code></strong>: The sender generates a new
+ephemeral key pair and stores it in the <code>e</code> variable, writes
+the ephemeral public key as cleartext into the message buffer, and
+hashes the public key along with the old <code>h</code> to derive a new
+<code>h</code>.</p></li>
+<li><p><strong><code>"s"</code></strong>: The sender writes its static
+public key from the <code>s</code> variable into the message buffer,
+encrypting it if <code>k</code> is non-empty, and hashes the output
+along with the old <code>h</code> to derive a new
+<code>h</code>.</p></li>
+<li><p><strong><code>"ekem", "skem"</code></strong>: a KEM encapsulation
+or decapsulation is performed using the message sender’s keypair
+(whether static or ephemeral is determined by the first letter). The
+result is hashed along with the old <code>ck</code> to derive a new
+<code>ck</code> and <code>k</code>, and <code>n</code> is set to
+zero.</p></li>
+</ul>
+<p>After processing the final token in a handshake message, the sender
+then writes the payload into the message buffer, encrypting it if
+<code>k</code> is non-empty, and hashes the output along with the old
+<code>h</code> to derive a new <code>h</code>.</p>
+<p>As a simple example, an unauthenticated DH handshake is described by
+the handshake pattern:</p>
+<pre><code>  -&gt; e
+  &lt;- ekem</code></pre>
+<p>The <strong>initiator</strong> sends the first message, which is
+simply an ephemeral public key. The <strong>responder</strong> sends
+back a KEM ciphertext addressed to that key. Both parties hash the
+secret produced by the KEM into a shared secret key.</p>
+<p>Note that a cleartext payload is sent in the first message, after the
+cleartext ephemeral public key, and an encrypted payload is sent in the
+response message, after the KEM ciphertext. The application may send
+whatever payloads it wants.</p>
+<p>The responder can send its static public key (under encryption) and
+authenticate itself via a slightly different pattern:</p>
+<pre><code>  -&gt; e
+  &lt;- ekem, s
+  -&gt; skem</code></pre>
+<p>In this case, the final <code>ck</code> and <code>k</code> values are
+a hash of both KEM secrets. Since the <code>skem</code> token indicates
+a KEM operation involving the responder’s static key, successful
+decryption of messages that following the handshake authenticate the
+responder to the initiator.</p>
+<p>Note that the second and third messages’ payloads may contain a
+zero-length plaintext, but the payload ciphertext will still contain
+authentication data (such as an authentication tag or “synthetic IV”),
+since encryption is with an AEAD mode. The second message’s payload can
+also be used to deliver certificates for the responder’s static public
+key.</p>
+<p>The initiator can send <em>its</em> static public key (under
+encryption), and authenticate itself, using a handshake pattern with one
+additional message:</p>
+<pre><code>  -&gt; e
+  &lt;- ekem, s
+  -&gt; skem, s
+  &lt;- skem</code></pre>
+<p>The following sections flesh out the details, and add some
+complications. However, the core of PQNoise is this simple system of
+variables, tokens, and processing rules, which allow concise expression
+of a range of protocols.</p>
+<h1 id="message-format">3. Message format</h1>
+<p>All PQNoise messages are less than or equal to 65535 bytes in length.
+Restricting message size has several advantages:</p>
+<ul>
+<li><p>Simpler testing, since it’s easy to test the maximum
+sizes.</p></li>
+<li><p>Reduces the likelihood of errors in memory handling, or integer
+overflow.</p></li>
+<li><p>Enables support for streaming decryption and random-access
+decryption of large data streams.</p></li>
+<li><p>Enables higher-level protocols that encapsulate PQNoise messages
+to use an efficient standard length field of 16 bits.</p></li>
+</ul>
+<p>All PQNoise messages can be processed without parsing, since there
+are no type or length fields. Of course, PQNoise messages might be
+encapsulated within a higher-level protocol that contains type and
+length information. PQNoise messages might encapsulate payloads that
+require parsing of some sort, but payloads are handled by the
+application, not by PQNoise.</p>
+<p>A PQNoise <strong>transport message</strong> is simply an AEAD
+ciphertext that is less than or equal to 65535 bytes in length, and that
+consists of an encrypted payload plus 16 bytes of authentication data.
+The details depend on the AEAD cipher function, e.g. AES256-GCM, or
+ChaCha20-Poly1305, but typically the authentication data is either a
+16-byte authentication tag appended to the ciphertext, or a 16-byte
+synthetic IV prepended to the ciphertext.</p>
+<p>A PQNoise <strong>handshake message</strong> is also less than or
+equal to 65535 bytes. It begins with a sequence of one or more KEM
+public keys or ciphertexts, as determined by its message pattern.
+Following the public keys will be a single payload which can be used to
+convey certificates or other handshake data, but can also contain a
+zero-length plaintext.</p>
+<p>Static public keys and payloads will be in cleartext if they are sent
+in a handshake prior to a KEM operation, and will be AEAD ciphertexts if
+they occur after a KEM operation. (If PQNoise is being used with
+pre-shared symmetric keys, this rule is different; see <a
+href="#pre-shared-symmetric-keys">Section 9</a>). Like transport
+messages, AEAD ciphertexts will expand each encrypted field (whether
+static public key or payload) by 16 bytes.</p>
+<p>For an example, consider the handshake pattern:</p>
+<pre><code>  -&gt; e
+  &lt;- ekem, s
+  -&gt; skem, s
+  &lt;- skem</code></pre>
+<p>The first message consists of a cleartext public key
+(<code>"e"</code>) followed by a cleartext payload (remember that a
+payload is implicit at the end of each message pattern). The second
+message consists of a KEM ciphertext (<code>"ekem"</code>) followed by
+an encrypted public key (<code>"s"</code>) followed by an encrypted
+payload. The third message consists of an encrypted KEM ciphertext
+(<code>"skem"</code>) followed by an encrypted public key
+(<code>"s"</code>) followed by an encrypted payload. The final message
+consists of an encrypted KEM ciphertext (<code>"skem"</code>) followed
+by an encrypted payload.</p>
+<p>Assuming each payload contains a zero-length plaintext, KEM keys are
+1000 bytes, and KEM ciphertexts are 1200 bytes, the message sizes will
+be:</p>
+<ol type="1">
+<li>1000 bytes (one cleartext public key and a cleartext payload)</li>
+<li>2232 bytes (one KEM ciphertext, one encrypted public key, and
+encrypted payload)<br />
+</li>
+<li>2248 bytes (one encrypted KEM ciphertext, one encrypted public key,
+and encrypted payload)</li>
+<li>1232 bytes (one encrypted KEM ciphertext, and encrypted
+payload)</li>
+</ol>
+<p>  </p>
+<h1 id="crypto-functions">4. Crypto functions</h1>
+<p>A PQNoise protocol is instantiated with a concrete set of <strong>KEM
+functions</strong>, <strong>cipher functions</strong>, and <strong>hash
+functions</strong>. The signature for these functions is defined below.
+Some concrete functions are defined in <a
+href="#dh-functions-cipher-functions-and-hash-functions">Section
+12</a>.</p>
+<p>The following notation will be used in algorithm pseudocode:</p>
+<ul>
+<li>The <code>||</code> operator concatenates byte sequences.</li>
+<li>The <code>byte()</code> function constructs a single byte.</li>
+</ul>
+<h2 id="dh-functions">4.1. DH functions</h2>
+<p>PQNoise depends on the following <strong>KEM functions</strong> (and
+an associated constant):</p>
+<ul>
+<li><p><strong><code>GENERATE_KEYPAIR()</code></strong>: Generates a new
+KEM key pair. A KEM key pair consists of <code>public_key</code> and
+<code>private_key</code> elements. A <code>public_key</code> represents
+an encoding of a KEM public key into a byte sequence of length
+<code>KEM_KEY_LEN</code>. The <code>public_key</code> encoding details
+are specific to each set of KEM functions.</p></li>
+<li><p><strong><code>ENCAPS(public_key)</code></strong>: Performs a KEM
+encapsulation addressed to <code>public_key</code>, and returns a shared
+secret (a byte sequence of length <code>KEM_SECRET_LEN</code>) and its
+corresponding KEM ciphertext (a byte sequence of length
+<code>KEM_CIPHERTEXT_LEN</code>).</p></li>
+<li><p><strong><code>DECAPS(private_key, ciphertext)</code></strong>:
+Performs a KEM decapsulation of <code>ciphertext</code> using
+<code>private_key</code>, and returns the same shared secret as the
+<code>ENCAPS</code> operation that produced the ciphertext (a byte
+sequence of <code>KEM_SECRET_LEN</code>).</p></li>
+<li><p><strong><code>KEM_KEY_LEN</code></strong> = A constant specifying
+the size in bytes of KEM public keys.</p></li>
+<li><p><strong><code>KEM_CIPHERTEXT_LEN</code></strong> = A constant
+specifying the size in bytes of KEM ciphertexts.</p></li>
+<li><p><strong><code>KEM_SECRET_LEN</code></strong> = A constant
+specifying the size in bytes of the shared secret produced by a KEM
+exchange. For security reasons, <code>KEM_SECRET_LEN</code> must be 32
+or greater (<strong>TODO</strong>: why? This is lifted from classical
+Noise. Does the ck construction depend on each new secret being large
+enough to be impossible to brute-force?)</p></li>
+</ul>
+<p>The KEM must be <strong>correct</strong> (for honestly generated keys
+and ciphertexts, <code>DECAPS</code> recovers the same shared secret as
+<code>ENCAPS</code> with overwhelmingly high probability),
+<strong>post-quantum IND-CCA secure</strong> (indistinguishability under
+adaptive chosen ciphertext attacks). It may use either explicit or
+implicit rejection of invalid ciphertexts.</p>
+<p><strong>TODO</strong>: reference NIST SP 800-227, note that ML-KEM
+meets the above requirements?</p>
+<h2 id="cipher-functions">4.2. Cipher functions</h2>
+<p>PQNoise depends on the following <strong>cipher
+functions</strong>:</p>
+<ul>
+<li><p><strong><code>ENCRYPT(k, n, ad, plaintext)</code></strong>:
+Encrypts <code>plaintext</code> using the cipher key <code>k</code> of
+32 bytes and an 8-byte unsigned integer nonce <code>n</code> which must
+be unique for the key <code>k</code>. Returns the ciphertext. Encryption
+must be done with an “AEAD” encryption mode with the associated data
+<code>ad</code> (using the terminology from <span class="citation"
+data-cites="Rogaway:2002"><a href="#ref-Rogaway:2002"
+role="doc-biblioref">[1]</a></span>) and returns a ciphertext that is
+the same size as the plaintext plus 16 bytes for authentication
+data.</p>
+<p>The entire ciphertext must be indistinguishable from random if the
+key is secret (using the terminology from <span class="citation"
+data-cites="Rogaway:2002"><a href="#ref-Rogaway:2002"
+role="doc-biblioref">[1]</a></span>, the AEAD must be IND$-CPA, not
+merely IND-CPA). Note that this is an additional requirement that isn’t
+necessarily met by all AEAD schemes.</p></li>
+<li><p><strong><code>DECRYPT(k, n, ad, ciphertext)</code></strong>:
+Decrypts <code>ciphertext</code> using a cipher key <code>k</code> of 32
+bytes, an 8-byte unsigned integer nonce <code>n</code>, and associated
+data <code>ad</code>. Returns the plaintext, unless authentication
+fails, in which case an error is signaled to the caller.</p></li>
+<li><p><strong><code>REKEY(k)</code></strong>: Returns a new 32-byte
+cipher key as a pseudorandom function of <code>k</code>.</p>
+<p>If this function is not specifically defined for some set of cipher
+functions, then it defaults to returning the first 32 bytes from
+<code>ENCRYPT(k, maxnonce, zerolen, zeros)</code>, where
+<code>maxnonce</code> equals 2<sup>64</sup>-1, <code>zerolen</code> is a
+zero-length byte sequence, and <code>zeros</code> is a sequence of 32
+bytes filled with zeros.</p></li>
+</ul>
+<h2 id="hash-functions">4.3. Hash functions</h2>
+<p>PQNoise depends on the following <strong>hash function</strong> (and
+associated constants):</p>
+<ul>
+<li><p><strong><code>HASH(data)</code></strong>: Hashes some
+arbitrary-length data with a collision-resistant cryptographic hash
+function and returns an output of <code>HASHLEN</code> bytes.</p></li>
+<li><p><strong><code>HASHLEN</code></strong> = A constant specifying the
+size in bytes of the hash output. Must be 32 or 64.</p></li>
+<li><p><strong><code>BLOCKLEN</code></strong> = A constant specifying
+the size in bytes that the hash function uses internally to divide its
+input for iterative processing. This is needed to use the hash function
+with HMAC (<code>BLOCKLEN</code> is <code>B</code> in <span
+class="citation" data-cites="rfc2104"><a href="#ref-rfc2104"
+role="doc-biblioref">[2]</a></span>).</p></li>
+</ul>
+<p>PQNoise defines additional functions based on the above
+<code>HASH()</code> function:</p>
+<ul>
+<li><p><strong><code>HMAC-HASH(key, data)</code></strong>: Applies
+<code>HMAC</code> from <span class="citation" data-cites="rfc2104"><a
+href="#ref-rfc2104" role="doc-biblioref">[2]</a></span> using the
+<code>HASH()</code> function. This function is only called as part of
+<code>HKDF()</code>, below.</p></li>
+<li><p><strong><code>HKDF(chaining_key, input_key_material, num_outputs)</code></strong>:
+Takes a <code>chaining_key</code> byte sequence of length
+<code>HASHLEN</code>, and an <code>input_key_material</code> byte
+sequence with length either zero bytes, 32 bytes, or <code>DHLEN</code>
+bytes. Returns a pair or triple of byte sequences each of length
+<code>HASHLEN</code>, depending on whether <code>num_outputs</code> is
+two or three:</p>
+<ul>
+<li>Sets
+<code>temp_key = HMAC-HASH(chaining_key, input_key_material)</code>.</li>
+<li>Sets <code>output1 = HMAC-HASH(temp_key, byte(0x01))</code>.</li>
+<li>Sets
+<code>output2 = HMAC-HASH(temp_key, output1 || byte(0x02))</code>.</li>
+<li>If <code>num_outputs == 2</code> then returns the pair
+<code>(output1, output2)</code>.</li>
+<li>Sets
+<code>output3 = HMAC-HASH(temp_key, output2 || byte(0x03))</code>.</li>
+<li>Returns the triple <code>(output1, output2, output3)</code>.</li>
+</ul>
+<p>Note that <code>temp_key</code>, <code>output1</code>,
+<code>output2</code>, and <code>output3</code> are all
+<code>HASHLEN</code> bytes in length. Also note that the
+<code>HKDF()</code> function is simply <code>HKDF</code> from <span
+class="citation" data-cites="rfc5869"><a href="#ref-rfc5869"
+role="doc-biblioref">[3]</a></span> with the <code>chaining_key</code>
+as HKDF <code>salt</code>, and zero-length HKDF
+<code>info</code>.</p></li>
+</ul>
+<h1 id="processing-rules">5. Processing rules</h1>
+<p>To precisely define the processing rules we adopt an object-oriented
+terminology, and present three “objects” which encapsulate state
+variables and contain functions which implement processing logic. These
+three objects are presented as a hierarchy: each higher-layer object
+includes one instance of the object beneath it. From lowest-layer to
+highest, the objects are:</p>
+<ul>
+<li><p>A <strong><code>CipherState</code></strong> object contains
+<code>k</code> and <code>n</code> variables, which it uses to encrypt
+and decrypt ciphertexts. During the handshake phase each party has a
+single <code>CipherState</code>, but during the transport phase each
+party has two <code>CipherState</code> objects: one for sending, and one
+for receiving.</p></li>
+<li><p>A <strong><code>SymmetricState</code></strong> object contains a
+<code>CipherState</code> plus <code>ck</code> and <code>h</code>
+variables. It is so-named because it encapsulates all the “symmetric
+crypto” used by PQNoise. During the handshake phase each party has a
+single <code>SymmetricState</code>, which can be deleted once the
+handshake is finished.</p></li>
+<li><p>A <strong><code>HandshakeState</code></strong> object contains a
+<code>SymmetricState</code> plus KEM variables
+<code>(s, e, rs, re)</code> and a variable representing the handshake
+pattern. During the handshake phase each party has a single
+<code>HandshakeState</code>, which can be deleted once the handshake is
+finished.</p></li>
+</ul>
+<p>To execute a PQNoise protocol you <code>Initialize()</code> a
+<code>HandshakeState</code>. During initialization you specify the
+handshake pattern, any local key pairs, and any public keys for the
+remote party you have knowledge of. After <code>Initialize()</code> you
+call <code>WriteMessage()</code> and <code>ReadMessage()</code> on the
+<code>HandshakeState</code> to process each handshake message. If any
+error is signaled by the <code>DECRYPT()</code> or <code>DECAPS()</code>
+functions then the handshake has failed and the
+<code>HandshakeState</code> is deleted.</p>
+<p>Processing the final handshake message returns two
+<code>CipherState</code> objects, the first for encrypting transport
+messages from initiator to responder, and the second for messages in the
+other direction. At that point the <code>HandshakeState</code> should be
+deleted except for the hash value <code>h</code>, which may be used for
+post-handshake channel binding (see <a href="#channel-binding">Section
+11.2</a>).</p>
+<p>Transport messages are then encrypted and decrypted by calling
+<code>EncryptWithAd()</code> and <code>DecryptWithAd()</code> on the
+relevant <code>CipherState</code> with zero-length associated data. If
+<code>DecryptWithAd()</code> signals an error due to
+<code>DECRYPT()</code> failure, then the input message is discarded. The
+application may choose to delete the <code>CipherState</code> and
+terminate the session on such an error, or may continue to attempt
+communications. If <code>EncryptWithAd()</code> or
+<code>DecryptWithAd()</code> signal an error due to nonce exhaustion,
+then the application must delete the <code>CipherState</code> and
+terminate the session.</p>
+<p>The below sections describe these objects in detail.</p>
+<h2 id="the-cipherstate-object">5.1. The <code>CipherState</code>
+object</h2>
+<p>A <code>CipherState</code> can encrypt and decrypt data based on its
+<code>k</code> and <code>n</code> variables:</p>
+<ul>
+<li><p><strong><code>k</code></strong>: A cipher key of 32 bytes (which
+may be <code>empty</code>). <code>Empty</code> is a special value which
+indicates <code>k</code> has not yet been initialized.</p></li>
+<li><p><strong><code>n</code></strong>: An 8-byte (64-bit) unsigned
+integer nonce.</p></li>
+</ul>
+<p>A <code>CipherState</code> responds to the following functions. The
+<code>++</code> post-increment operator applied to <code>n</code> means
+“use the current <code>n</code> value, then increment it”. The maximum
+<code>n</code> value (2<sup>64</sup>-1) is reserved for rekeying,
+described in <a href="#rekey">Section 11.3</a>. If incrementing
+<code>n</code> results in 2<sup>64</sup>-1, then any further
+<code>EncryptWithAd()</code> or <code>DecryptWithAd()</code> calls will
+signal an error to the caller.</p>
+<ul>
+<li><p><strong><code>InitializeKey(key)</code></strong>: Sets
+<code>k = key</code>. Sets <code>n = 0</code>.</p></li>
+<li><p><strong><code>HasKey()</code></strong>: Returns true if
+<code>k</code> is non-empty, false otherwise.</p></li>
+<li><p><strong><code>SetNonce(nonce)</code></strong>: Sets
+<code>n = nonce</code>. This function is used for handling out-of-order
+transport messages, as described in <a
+href="#out-of-order-transport-messages">Section 11.4</a>.</p></li>
+<li><p><strong><code>EncryptWithAd(ad, plaintext)</code></strong>: If
+<code>k</code> is non-empty returns
+<code>ENCRYPT(k, n++, ad, plaintext)</code>. Otherwise returns
+<code>plaintext</code>.</p></li>
+<li><p><strong><code>DecryptWithAd(ad, ciphertext)</code></strong>: If
+<code>k</code> is non-empty returns
+<code>DECRYPT(k, n++, ad, ciphertext)</code>. Otherwise returns
+<code>ciphertext</code>. If an authentication failure occurs in
+<code>DECRYPT()</code> then <code>n</code> is not incremented and an
+error is signaled to the caller.</p></li>
+<li><p><strong><code>Rekey()</code></strong>: Sets
+<code>k = REKEY(k)</code>.</p></li>
+</ul>
+<h2 id="the-symmetricstate-object">5.2. The <code>SymmetricState</code>
+object</h2>
+<p>A <code>SymmetricState</code> object contains a
+<code>CipherState</code> plus the following variables:</p>
+<ul>
+<li><strong><code>ck</code></strong>: A chaining key of
+<code>HASHLEN</code> bytes.</li>
+<li><strong><code>h</code></strong>: A hash output of
+<code>HASHLEN</code> bytes.</li>
+</ul>
+<p>A <code>SymmetricState</code> responds to the following
+functions:</p>
+<ul>
+<li><p><strong><code>InitializeSymmetric(protocol_name)</code></strong>:
+Takes an arbitrary-length <code>protocol_name</code> byte sequence (see
+<a href="#protocol-names-and-modifiers">Section 8</a>). Executes the
+following steps:</p>
+<ul>
+<li><p>If <code>protocol_name</code> is less than or equal to
+<code>HASHLEN</code> bytes in length, sets <code>h</code> equal to
+<code>protocol_name</code> with zero bytes appended to make
+<code>HASHLEN</code> bytes. Otherwise sets
+<code>h = HASH(protocol_name)</code>.</p></li>
+<li><p>Sets <code>ck = h</code>.</p></li>
+<li><p>Calls <code>InitializeKey(empty)</code>.</p></li>
+</ul></li>
+<li><p><strong><code>MixKey(input_key_material)</code></strong>:
+Executes the following steps:</p>
+<ul>
+<li>Sets <code>ck, temp_k = HKDF(ck, input_key_material, 2)</code>.</li>
+<li>If <code>HASHLEN</code> is 64, then truncates <code>temp_k</code> to
+32 bytes.</li>
+<li>Calls <code>InitializeKey(temp_k)</code>.</li>
+</ul></li>
+<li><p><strong><code>MixHash(data)</code></strong>: Sets
+<code>h = HASH(h || data)</code>.</p></li>
+<li><p><strong><code>MixKeyAndHash(input_key_material)</code></strong>:
+This function is used for handling pre-shared symmetric keys, as
+described in <a href="#pre-shared-symmetric-keys">Section 9</a>. It
+executes the following steps:</p>
+<ul>
+<li>Sets
+<code>ck, temp_h, temp_k = HKDF(ck, input_key_material, 3)</code>.</li>
+<li>Calls <code>MixHash(temp_h)</code>.</li>
+<li>If <code>HASHLEN</code> is 64, then truncates <code>temp_k</code> to
+32 bytes.</li>
+<li>Calls <code>InitializeKey(temp_k)</code>.</li>
+</ul></li>
+<li><p><strong><code>GetHandshakeHash()</code></strong>: Returns
+<code>h</code>. This function should only be called at the end of a
+handshake, i.e. after the <code>Split()</code> function has been called.
+This function is used for channel binding, as described in <a
+href="#channel-binding">Section 11.2</a></p></li>
+<li><p><strong><code>EncryptAndHash(plaintext)</code></strong>: Sets
+<code>ciphertext = EncryptWithAd(h, plaintext)</code>, calls
+<code>MixHash(ciphertext)</code>, and returns <code>ciphertext</code>.
+Note that if <code>k</code> is <code>empty</code>, the
+<code>EncryptWithAd()</code> call will set <code>ciphertext</code> equal
+to <code>plaintext</code>.</p></li>
+<li><p><strong><code>DecryptAndHash(ciphertext)</code></strong>: Sets
+<code>plaintext = DecryptWithAd(h, ciphertext)</code>, calls
+<code>MixHash(ciphertext)</code>, and returns <code>plaintext</code>.
+Note that if <code>k</code> is <code>empty</code>, the
+<code>DecryptWithAd()</code> call will set <code>plaintext</code> equal
+to <code>ciphertext</code>.</p></li>
+<li><p><strong><code>Split()</code></strong>: Returns a pair of
+<code>CipherState</code> objects for encrypting transport messages.
+Executes the following steps, where <code>zerolen</code> is a
+zero-length byte sequence:</p>
+<ul>
+<li>Sets <code>temp_k1, temp_k2 = HKDF(ck, zerolen, 2)</code>.</li>
+<li>If <code>HASHLEN</code> is 64, then truncates <code>temp_k1</code>
+and <code>temp_k2</code> to 32 bytes.</li>
+<li>Creates two new <code>CipherState</code> objects <code>c1</code> and
+<code>c2</code>.</li>
+<li>Calls <code>c1.InitializeKey(temp_k1)</code> and
+<code>c2.InitializeKey(temp_k2)</code>.</li>
+<li>Returns the pair <code>(c1, c2)</code>.</li>
+</ul></li>
+</ul>
+<h2 id="the-handshakestate-object">5.3. The <code>HandshakeState</code>
+object</h2>
+<p>A <code>HandshakeState</code> object contains a
+<code>SymmetricState</code> plus the following variables, any of which
+may be <code>empty</code>. <code>Empty</code> is a special value which
+indicates the variable has not yet been initialized.</p>
+<ul>
+<li><strong><code>s</code></strong>: The local static key pair</li>
+<li><strong><code>e</code></strong>: The local ephemeral key pair</li>
+<li><strong><code>rs</code></strong>: The remote party’s static public
+key</li>
+<li><strong><code>re</code></strong>: The remote party’s ephemeral
+public key</li>
+</ul>
+<p>A <code>HandshakeState</code> also has variables to track its role,
+and the remaining portion of the handshake pattern:</p>
+<ul>
+<li><p><strong><code>initiator</code></strong>: A boolean indicating the
+initiator or responder role.</p></li>
+<li><p><strong><code>message_patterns</code></strong>: A sequence of
+message patterns. Each message pattern is a sequence of tokens from the
+set <code>("e", "s", "ekem", "skem")</code>. (An additional
+<code>"psk"</code> token is introduced in <a
+href="#pre-shared-symmetric-keys">Section 9</a>, but we defer its
+explanation until then.)</p></li>
+</ul>
+<p>A <code>HandshakeState</code> responds to the following
+functions:</p>
+<ul>
+<li><p><strong><code>Initialize(handshake_pattern, initiator, prologue, s, e, rs, re)</code></strong>:
+Takes a valid <code>handshake_pattern</code> (see <a
+href="#handshake-patterns">Section 7</a>) and an <code>initiator</code>
+boolean specifying this party’s role as either initiator or
+responder.</p>
+<p>Takes a <code>prologue</code> byte sequence which may be zero-length,
+or which may contain context information that both parties want to
+confirm is identical (see <a href="#prologue">Section 6</a>).</p>
+<p>Takes a set of KEM key pairs <code>(s, e)</code> and public keys
+<code>(rs, re)</code> for initializing local variables, any of which may
+be empty. Public keys are only passed in if the
+<code>handshake_pattern</code> uses pre-messages (see <a
+href="#handshake-patterns">Section 7</a>). The ephemeral values
+<code>(e, re)</code> are typically left empty, since they are created
+and exchanged during the handshake; but there are exceptions (see <a
+href="#compound-patterns">Section 10</a>).</p>
+<p>Performs the following steps:</p>
+<ul>
+<li><p>Derives a <code>protocol_name</code> byte sequence by combining
+the names for the handshake pattern and crypto functions, as specified
+in <a href="#protocol-names-and-modifiers">Section 8</a>. Calls
+<code>InitializeSymmetric(protocol_name)</code>.</p></li>
+<li><p>Calls <code>MixHash(prologue)</code>.</p></li>
+<li><p>Sets the <code>initiator</code>, <code>s</code>, <code>e</code>,
+<code>rs</code>, and <code>re</code> variables to the corresponding
+arguments.</p></li>
+<li><p>Calls <code>MixHash()</code> once for each public key listed in
+the pre-messages from <code>handshake_pattern</code>, with the specified
+public key as input (see <a href="#handshake-patterns">Section 7</a> for
+an explanation of pre-messages). If both initiator and responder have
+pre-messages, the initiator’s public keys are hashed first. If multiple
+public keys are listed in either party’s pre-message, the public keys
+are hashed in the order that they are listed.</p></li>
+<li><p>Sets <code>message_patterns</code> to the message patterns from
+<code>handshake_pattern</code>.</p></li>
+</ul></li>
+<li><p><strong><code>WriteMessage(payload, message_buffer)</code></strong>:
+Takes a <code>payload</code> byte sequence which may be zero-length, and
+a <code>message_buffer</code> to write the output into. Performs the
+following steps, aborting if any <code>EncryptAndHash()</code> call
+returns an error:</p>
+<ul>
+<li><p>Fetches and deletes the next message pattern from
+<code>message_patterns</code>, then sequentially processes each token
+from the message pattern:</p>
+<ul>
+<li><p>For <code>"e"</code>: Sets <code>e</code> (which must be empty)
+to <code>GENERATE_KEYPAIR()</code>. Appends <code>e.public_key</code> to
+the buffer. Calls <code>MixHash(e.public_key)</code>.</p></li>
+<li><p>For <code>"s"</code>: Appends
+<code>EncryptAndHash(s.public_key)</code> to the buffer.</p></li>
+<li><p>For <code>"ekem"</code>: Computes <code>k, c = ENCAPS(re)</code>,
+appends <code>EncryptAndHash(c)</code> to the buffer, and calls
+<code>MixKey(k)</code>.</p></li>
+<li><p>For <code>"skem"</code>: Computes <code>k, c = ENCAPS(rs)</code>,
+appends <code>EncryptAndHash(c)</code> to the buffer, and calls
+<code>MixKey(k)</code>.</p></li>
+</ul></li>
+<li><p>Appends <code>EncryptAndHash(payload)</code> to the
+buffer.</p></li>
+<li><p>If there are no more message patterns returns two new
+<code>CipherState</code> objects by calling
+<code>Split()</code>.</p></li>
+</ul></li>
+</ul>
+<ul>
+<li><p><strong><code>ReadMessage(message, payload_buffer)</code></strong>:
+Takes a byte sequence containing a PQNoise handshake message, and a
+<code>payload_buffer</code> to write the message’s plaintext payload
+into. Performs the following steps, aborting if any
+<code>DecryptAndHash()</code> or <code>DECAPS()</code> call returns an
+error:</p>
+<ul>
+<li><p>Fetches and deletes the next message pattern from
+<code>message_patterns</code>, then sequentially processes each token
+from the message pattern:</p>
+<ul>
+<li><p>For <code>"e"</code>: Sets <code>re</code> (which must be empty)
+to the next <code>DHLEN</code> bytes from the message. Calls
+<code>MixHash(re.public_key)</code>.</p></li>
+<li><p>For <code>"s"</code>: Sets <code>temp</code> to the next
+<code>DHLEN + 16</code> bytes of the message if
+<code>HasKey() == True</code>, or to the next <code>DHLEN</code> bytes
+otherwise. Sets <code>rs</code> (which must be empty) to
+<code>DecryptAndHash(temp)</code>.</p></li>
+<li><p>For <code>"ekem"</code>: Sets <code>temp</code> to the next
+<code>KEM_CIPHERTEXT_LEN + 16</code> bytes of the message if
+<code>HasKey() == True</code>, or to the next
+<code>KEM_CIPHERTEXT_LEN</code> bytes otherwise. Calls
+<code>MixKey(DECAPS(e, DecryptAndHash(temp)))</code>.</p></li>
+<li><p>For <code>"ekem"</code>: Sets <code>temp</code> to the next
+<code>KEM_CIPHERTEXT_LEN + 16</code> bytes of the message if
+<code>HasKey() == True</code>, or to the next
+<code>KEM_CIPHERTEXT_LEN</code> bytes otherwise. Calls
+<code>MixKey(DECAPS(s, DecryptAndHash(temp)))</code>.</p></li>
+</ul></li>
+<li><p>Calls <code>DecryptAndHash()</code> on the remaining bytes of the
+message and stores the output into <code>payload_buffer</code>.</p></li>
+<li><p>If there are no more message patterns returns two new
+<code>CipherState</code> objects by calling
+<code>Split()</code>.</p></li>
+</ul></li>
+</ul>
+<h1 id="prologue">6. Prologue</h1>
+<p>PQNoise protocols have a <strong>prologue</strong> input which allows
+arbitrary data to be hashed into the <code>h</code> variable. If both
+parties do not provide identical prologue data, the handshake will fail
+due to a decryption error. This is useful when the parties engaged in
+negotiation prior to the handshake and want to ensure they share
+identical views of that negotiation.</p>
+<p>For example, suppose Bob communicates to Alice a list of PQNoise
+protocols that he is willing to support. Alice will then choose and
+execute a single protocol. To ensure that a “man-in-the-middle” did not
+edit Bob’s list to remove options, Alice and Bob could include the list
+as prologue data.</p>
+<p>Note that while the parties confirm their prologues are identical,
+they don’t mix prologue data into encryption keys. If an input contains
+secret data that’s intended to strengthen the encryption, a PSK
+handshake should be used instead (see <a
+href="pre-shared-symmetric-keys">Section 9</a>).</p>
+<h1 id="handshake-patterns">7. Handshake patterns</h1>
+<h2 id="handshake-pattern-basics">7.1. Handshake pattern basics</h2>
+<p>A <strong>message pattern</strong> is some sequence of tokens from
+the set <code>("e", "s", "ekem", "skem", "psk")</code>. The handling of
+these tokens within <code>WriteMessage()</code> and
+<code>ReadMessage()</code> has been described previously, except for the
+<code>"psk"</code> token, which will be described in <a
+href="pre-shared-symmetric-keys">Section 9</a>. Future specifications
+might introduce other tokens.</p>
+<p>A <strong>pre-message pattern</strong> is one of the following
+sequences of tokens:</p>
+<ul>
+<li><code>"e"</code></li>
+<li><code>"s"</code></li>
+<li><code>"e, s"</code></li>
+<li>empty</li>
+</ul>
+<p>A <strong>handshake pattern</strong> consists of:</p>
+<ul>
+<li><p>A pre-message pattern for the initiator, representing information
+about the initiator’s public keys that is known to the
+responder.</p></li>
+<li><p>A pre-message pattern for the responder, representing information
+about the responder’s public keys that is known to the
+initiator.</p></li>
+<li><p>A sequence of message patterns for the actual handshake
+messages.</p></li>
+</ul>
+<p>The pre-messages represent an exchange of public keys that was
+somehow performed prior to the handshake, so these public keys must be
+inputs to <code>Initialize()</code> for the “recipient” of the
+pre-message.</p>
+<p>The first actual handshake message is sent from the initiator to the
+responder. The next message is sent from the responder, the next from
+the initiator, and so on in alternating fashion.</p>
+<p>The following handshake pattern describes an unauthenticated PQNoise
+handshake consisting of two message patterns:</p>
+<pre><code>pqNN:
+  -&gt; e
+  &lt;- ekem</code></pre>
+<p>In the following handshake pattern both the initiator and responder
+possess static key pairs, and the handshake pattern comprises four
+message patterns:</p>
+<pre><code>pqXX:
+  -&gt; e
+  &lt;- ekem, s
+  -&gt; skem, s
+  &lt;- skem</code></pre>
+<p>The handshake pattern names are <code>pqNN</code> and
+<code>pqXX</code>. This naming convention will be explained in <a
+href="#interactive-handshake-patterns-fundamental">Section 7.5</a>.</p>
+<p>Non-empty pre-messages are shown as pre-message patterns prior to the
+delimiter <code>"..."</code>. If both parties have a pre-message, the
+initiator’s is listed first, and hashed first. During
+<code>Initialize()</code>, <code>MixHash()</code> is called on any
+pre-message public keys, as described in <a
+href="#the-handshakestate-object">Section 5.3</a>.</p>
+<p>The following handshake pattern describes a handshake where the
+initiator has pre-knowledge of the responder’s static public key and
+uses it for “zero-RTT” encryption:</p>
+<pre><code>pqNK:
+  &lt;- s
+  ...
+  -&gt; skem, e 
+  &lt;- ekem</code></pre>
+<p>In the following handshake pattern both parties have pre-knowledge of
+the other’s static public key. The initiator’s pre-message is listed
+first:</p>
+<pre><code>pqKK:
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; skem, e
+  &lt;- ekem, skem</code></pre>
+<h2 id="alice-and-bob">7.2. Alice and Bob</h2>
+<p>In all handshake patterns shown previously, the initiator is the
+party on the left (sending with right-pointing arrows) and the responder
+is the party on the right.</p>
+<p>However, multiple PQNoise protocols might be used within a
+<strong>compound protocol</strong> where the responder in one PQNoise
+protocol becomes the initiator for a later PQNoise protocol. As a
+convenience for terminology and notation in this case, we introduce the
+notion of <strong>Alice</strong> and <strong>Bob</strong> roles which
+are different from initiator and responder roles. Alice will be viewed
+as the party on the left (sending messages with right arrows), and Bob
+will be the party on the right.</p>
+<p>Handshake patterns written in <strong>canonical form</strong>
+(i.e. <strong>Alice-initiated form</strong>) assume the initiator is
+Alice (the left-most party). All processing rules and discussion so far
+have assumed canonical-form handshake patterns.</p>
+<p>However, handshake patterns can be written in <strong>Bob-initiated
+form</strong> by reversing the arrows. This doesn’t change the handshake
+pattern, it simply makes it easier to view Alice-initiated and
+Bob-initiated handshakes side-by-side.</p>
+<p>Below are the handshake patterns from the previous section in
+Bob-initiated form:</p>
+<pre><code>pqNN:
+  &lt;- e
+  -&gt; ekem
+
+pqXX:
+  &lt;- e
+  -&gt; ekem, s
+  &lt;- skem, s
+  &lt;- skem
+
+pqNK:
+  -&gt; s
+  ...
+  &lt;- skem, e
+  -&gt; ekem
+
+pqKK:
+  &lt;- s
+  -&gt; s
+  ...
+  &lt;- skem, e
+  -&gt; ekem, skem</code></pre>
+<h2 id="handshake-pattern-validity">7.3. Handshake pattern validity</h2>
+<p>Handshake patterns must be <strong>valid</strong> in the following
+senses:</p>
+<ol type="1">
+<li><p>Parties can only perform KEM operations with private keys and
+public keys they possess.</p></li>
+<li><p>Parties must not send their static public key or ephemeral public
+key more than once per handshake (i.e. including the pre-messages, there
+must be no more than one occurrence of <code>"e"</code>, and one
+occurrence of <code>"s"</code>, in the messages sent by any
+party).</p></li>
+<li><p>Parties must not call <code>ENCAPS()</code> more than once on a
+given public key per handshake (i.e. there must be no more than one
+occurrence of <code>"ekem"</code> or <code>"skem"</code> per message
+direction in a handshake).</p></li>
+<li><p>Parties must send KEM ciphertexts for a key in the first message
+sent after learning the key. For example:</p>
+<ul>
+<li>A responder that receives <code>"e"</code> in a message must include
+<code>"ekem"</code> in the following message.</li>
+<li>An initiator that receives <code>"s"</code> in a pre-message must
+include <code>"skem"</code> in its first message.</li>
+</ul></li>
+<li><p>Within a message, <code>"ekem"</code> always precedes
+<code>"skem"</code>, which always precedes all public keys and the
+payload.</p></li>
+</ol>
+<p>Patterns failing the first check are obviously nonsense.</p>
+<p>The second and third checks outlaw redundant transmission of values,
+and redundant computation, to simplify implementation and testing.</p>
+<p>TODO: could also mandate that you must send ekem/skem as soon as you
+learn the relevant pubkey. Could also include the rule from PQNoise
+paper that ekem precedes skem precedes anything else, which maximizes
+security properties for subsequent message fields. Neither is required
+for a pattern to be valid in the security sense, but eliminate a number
+of patterns that are strictly weaker choices than the pattern with those
+rules applied.</p>
+<p>Users are recommended to only use the handshake patterns listed
+below, or other patterns that have been vetted by experts to satisfy the
+above checks.</p>
+<h2 id="handshake-patterns-fundamental">7.4. Handshake patterns
+(fundamental)</h2>
+<p>The following handshake patterns represent interactive protocols.
+These 12 patterns are called the <strong>fundamental</strong>
+interactive handshake patterns.</p>
+<p>The fundamental interactive patterns are named with two characters,
+which indicate the status of the initiator and responder’s static
+keys:</p>
+<p>The first character refers to the initiator’s static key:</p>
+<ul>
+<li><strong><code>N</code></strong> = <strong><code>N</code></strong>o
+static key for initiator</li>
+<li><strong><code>K</code></strong> = Static key for initiator
+<strong><code>K</code></strong>nown to responder</li>
+<li><strong><code>X</code></strong> = Static key for initiator
+<strong><code>X</code></strong>mitted (“transmitted”) to responder</li>
+<li><strong><code>I</code></strong> = Static key for initiator
+<strong><code>I</code></strong>mmediately transmitted to responder,
+despite reduced or absent identity hiding</li>
+</ul>
+<p>The second character refers to the responder’s static key:</p>
+<ul>
+<li><strong><code>N</code></strong> = <strong><code>N</code></strong>o
+static key for responder</li>
+<li><strong><code>K</code></strong> = Static key for responder
+<strong><code>K</code></strong>nown to initiator</li>
+<li><strong><code>X</code></strong> = Static key for responder
+<strong><code>X</code></strong>mitted (“transmitted”) to initiator</li>
+</ul>
+<table style="width:85%;">
+<colgroup>
+<col style="width: 38%" />
+<col style="width: 45%" />
+</colgroup>
+<tbody>
+<tr>
+<td><pre><code>pqNN:
+  -&gt; e
+  &lt;- ekem</code></pre></td>
+<td><pre><code>   pqKN:
+     -&gt; s
+     ...
+     -&gt; e
+     &lt;- ekem, skem</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqNK:
+  &lt;- s
+  ...
+  -&gt; skem, e
+  &lt;- ekem</code></pre></td>
+<td><pre><code>   pqKK:
+     -&gt; s
+     &lt;- s
+     ...
+     -&gt; skem, e
+     &lt;- ekem, skem</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqNX:
+  -&gt; e
+  &lt;- ekem, s
+  -&gt; skem</code></pre></td>
+<td><pre><code>    pqKX:
+      -&gt; s
+      ...
+      -&gt; e
+      &lt;- ekem, skem, s
+      -&gt; skem</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqXN:
+  -&gt; e
+  &lt;- ekem
+  -&gt; s
+  &lt;- skem</code></pre></td>
+<td><pre><code>    pqIN:
+      -&gt; e, s
+      &lt;- ekem, skem</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqXK:
+  &lt;- s
+  ...
+  -&gt; skem, e
+  &lt;- ekem
+  -&gt; s
+  &lt;- skem</code></pre></td>
+<td><pre><code>    pqIK:
+      &lt;- s
+      ...
+      -&gt; skem, e, s
+      &lt;- ekem, skem</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqXX:
+  -&gt; e
+  &lt;- ekem, s
+  -&gt; skem, s
+  &lt;- skem</code></pre></td>
+<td><pre><code>    pqIX:
+      -&gt; e, s
+      &lt;- ekem, skem, s
+      -&gt; skem</code></pre></td>
+</tr>
+</tbody>
+</table>
+<p>The <code>pqXX</code> pattern is the most generically useful, since
+it supports mutual authentication and transmission of static public
+keys.</p>
+<p>All fundamental patterns allow some encryption of handshake
+payloads:</p>
+<ul>
+<li><p>Patterns where the initiator has pre-knowledge of the responder’s
+static public key (i.e. patterns ending in <code>K</code>) allow
+<strong>zero-RTT</strong> encryption, meaning the initiator can encrypt
+the first handshake payload.</p></li>
+<li><p>All fundamental patterns allow <strong>half-RTT</strong>
+encryption of the first response payload, but the encryption only
+targets an initiator static public key in patterns starting with
+<code>K</code> or <code>I</code>.</p></li>
+</ul>
+<p>The security properties for handshake payloads are usually weaker
+than the final security properties achieved by transport payloads, so
+these early encryptions must be used with caution.</p>
+<p>In some patterns the security properties of transport payloads can
+also vary. In particular: patterns starting with <code>K</code> or
+<code>I</code> have the caveat that the responder is only guaranteed
+“weak” forward secrecy for the transport messages it sends until it
+receives a transport message from the initiator. After receiving a
+transport message from the initiator, the responder becomes assured of
+“strong” forward secrecy.</p>
+<p>More analysis of these payload security properties is in <a
+href="#payload-security-properties">Section 7.5</a>.</p>
+<h2 id="payload-security-properties">7.5. Payload security
+properties</h2>
+<p>The following table lists the security properties for PQNoise
+handshake and transport payloads for all the fundamental patterns in <a
+href="#handshake-patterns-fundamental">Section 7.4</a>. Each payload is
+assigned a “source” property regarding the degree of authentication of
+the sender provided to the recipient, and a “destination” property
+regarding the degree of confidentiality provided to the sender.</p>
+<p>The source properties are:</p>
+<ol start="0" type="1">
+<li><p><strong>No authentication.</strong> This payload may have been
+sent by any party, including an active attacker.</p></li>
+<li><p><strong>Sender authentication</strong>. The payload’s
+<code>CipherState</code> derives from a contribution tied to the
+sender’s static identity. Encrypting the payload with the correct
+encryption key requires possession of the sender’s static private
+key.</p></li>
+</ol>
+<p>Message payloads are unauthenticated (source property = 0) until the
+sender receives and successfully processes an <code>"skem"</code> token.
+Thereafter, all message payloads are sender authenticated (source
+property = 1).</p>
+<p>The destination properties are:</p>
+<ol start="0" type="1">
+<li><p><strong>No confidentiality.</strong> This payload is sent in
+cleartext.</p></li>
+<li><p><strong>Encryption to an ephemeral recipient, forward
+secrecy.</strong> The payload’s <code>CipherState</code> includes an
+ephemeral contribution. However, the sender has not authenticated the
+recipient, so this payload might be sent to any party, including an
+active attacker.</p></li>
+<li><p><strong>Encryption to a known recipient, forward secrecy for
+sender compromise only, vulnerable to replay.</strong> The payload’s
+<code>CipherState</code> includes a contribution tied to the recipient’s
+static identity. If the recipient’s static private key is compromised,
+even at a later date, this payload can be decrypted. This message can
+also be replayed, since there’s no ephemeral contribution.</p></li>
+<li><p><strong>Encryption to a known recipient, forward
+secrecy.</strong> The payload’s <code>CipherState</code> includes a
+contribution tied to the recipient’s static identity, as well as an
+ephemeral contribution. Assuming the ephemeral private keys are secure,
+and the recipient is not being actively impersonated by an attacker that
+has stolen its static private key, this payload cannot be
+decrypted.</p></li>
+</ol>
+<p>In the fundamental patterns, the destination property is determined
+entirely by the presence or absence of two tokens in the portion of the
+handshake preceding a payload: an <code>"skem"</code> token flowing from
+sender to recipient, and an <code>"ekem"</code> token in any
+direction:</p>
+<table style="width:99%;">
+<colgroup>
+<col style="width: 29%" />
+<col style="width: 36%" />
+<col style="width: 32%" />
+</colgroup>
+<tbody>
+<tr>
+<td></td>
+<td>No <code>"skem"</code> to recipient</td>
+<td><code>"skem"</code> to recipient</td>
+</tr>
+<tr>
+<td>No <code>"ekem"</code></td>
+<td><pre><code>       0</code></pre></td>
+<td><pre><code>      2</code></pre></td>
+</tr>
+<tr>
+<td><code>"ekem"</code> processed</td>
+<td><pre><code>       1</code></pre></td>
+<td><pre><code>      3</code></pre></td>
+</tr>
+</tbody>
+</table>
+<p>In fundamental patterns, the presence or absence of an
+<code>"skem"</code> addressed to the sender has no influence on the
+destination property: if a message payload’s <code>CipherState</code>
+receives a contribution from such an <code>"skem"</code>, it always
+receives an <code>"ekem"</code> contribution as well. The resulting
+destination property is the same as that of an <code>"ekem"</code>
+contribution alone.</p>
+<p>Non-fundamental patterns may have message payloads whose sole
+<code>CipherState</code> contribution is from an <code>"skem"</code>
+addressed to the sender. The destination property in that case is
+<strong>Encryption to an unknown recipient, forward secrecy for
+recipient compromise only</strong>, which lies between destination
+property 0 (no encryption) and destination property 1 (encryption to
+ephemeral recipient).</p>
+<p>Security properties are listed for each handshake payload. Transport
+payloads are listed as arrows without a pattern. Transport payloads are
+only listed if they have different security properties than the previous
+handshake payload sent from the same party. If two transport payloads
+are listed, the security properties for the second only apply if the
+first was received.</p>
+<table style="width:88%;">
+<colgroup>
+<col style="width: 87%" />
+</colgroup>
+<tbody>
+<tr>
+<td><pre><code>                         Source         Destination</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqNN
+  -&gt; e                      0                0
+  &lt;- ekem                   0                1
+  -&gt;                        0                1</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqNK
+  &lt;- s
+  ...
+  -&gt; skem, e                0                2
+  &lt;- ekem                   1                1
+  -&gt;                        0                3</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqNX
+  -&gt; e                      0                0
+  &lt;- ekem, s                0                1
+  -&gt; skem                   0                3
+  &lt;-                        1                1</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqXN
+  -&gt; e                      0                0
+  &lt;- ekem                   0                1
+  -&gt; s                      0                1
+  &lt;- skem                   0                3
+  -&gt;                        1                1</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqXK
+  &lt;- s
+  ...
+  -&gt; skem, e                0                2
+  &lt;- ekem                   1                1
+  -&gt; s                      0                3
+  &lt;- skem                   1                3
+  -&gt;                        1                3</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqXX
+  -&gt; e                      0                0
+  &lt;- ekem, s                0                1
+  -&gt; skem, s                0                3
+  &lt;- skem                   1                3
+  -&gt;                        1                3</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqKN
+  -&gt; s
+  ...
+  -&gt; e                      0                0
+  &lt;- ekem, skem             0                3
+  -&gt;                        1                1</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqKK
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; skem, e                0                2
+  &lt;- ekem, skem             1                3
+  -&gt;                        1                3</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqKX
+  -&gt; s
+  ...
+  -&gt; e                      0                0
+  &lt;- ekem, skem, s          0                3
+  -&gt; skem                   1                3
+  &lt;-                        1                3</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqIN
+  -&gt; e, s                   0                0
+  &lt;- ekem, skem             0                3
+  -&gt;                        1                1</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqIK
+  &lt;- s
+  ...
+  -&gt; skem, e, s             0                2
+  &lt;- ekem, skem             1                3
+  -&gt;                        1                3</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>pqIX
+  -&gt; e, s                   0                0
+  &lt;- ekem, skem, s          0                3
+  -&gt; skem                   1                3
+  &lt;-                        1                3</code></pre></td>
+</tr>
+</tbody>
+</table>
+<h2 id="identity-hiding">7.6. Identity hiding</h2>
+<p><strong>TODO</strong>: recheck all these properties carefully. KEMs
+don’t have the symmetry properties of DH, which may change the ability
+of attackers to probe in some cases. I’ve done one pass so far, but I’m
+not highly confident in my judgement.</p>
+<p>The following table lists the identity-hiding properties for all the
+fundamental handshake patterns in <a
+href="#handshake-patterns-fundamental">Section 7.4</a>.</p>
+<p>Each pattern is assigned properties describing the confidentiality
+supplied to the initiator’s static public key, and to the responder’s
+static public key. The underlying assumptions are that ephemeral private
+keys are secure, and that parties abort the handshake if they receive a
+static public key from the other party which they don’t trust.</p>
+<p>This section only considers identity leakage through static public
+key fields in handshakes. Of course, the identities of PQNoise
+participants might be exposed through other means, including payload
+fields, traffic analysis, or metadata such as IP addresses.</p>
+<p>The properties for the relevant public key are:</p>
+<ol start="0" type="1">
+<li><p>Transmitted in clear.</p></li>
+<li><p>Encrypted with forward secrecy, but can be probed by an anonymous
+initiator.</p></li>
+<li><p>Encrypted with forward secrecy, but sent to an anonymous
+responder.</p></li>
+<li><p>Not transmitted, but a passive attacker can check candidates for
+the responder’s private key and determine whether the candidate is
+correct. An attacker could also replay a previously-recorded message to
+a new responder and determine whether the two responders are the “same”
+(i.e. are using the same static key pair) by whether the recipient
+accepts the message.</p></li>
+<li><p>Encrypted to responder’s static public key, without forward
+secrecy. If an attacker learns the responder’s private key they can
+decrypt the initiator’s public key.</p></li>
+<li><p>Not transmitted, but a passive attacker can check candidates for
+the pair of (responder’s private key, initiator’s public key) and learn
+whether the candidate pair is correct.</p></li>
+<li><p>Encrypted but with weak forward secrecy. An active attacker who
+pretends to be the initiator without the initiator’s static private key,
+then later learns the initiator private key, can then decrypt the
+responder’s public key.</p></li>
+<li><p>Not transmitted, but an active attacker who pretends to be the
+initator without the initiator’s static private key, then later learns a
+candidate for the initiator private key, can then check whether the
+candidate is correct.</p></li>
+<li><p>Encrypted with forward secrecy to an authenticated
+party.</p></li>
+<li><p>An active attacker who pretends to be the initiator and records a
+single protocol run can then check candidates for the responder’s public
+key.</p></li>
+</ol>
+<!-- end of list - necesary to trick Markdown into seeing the following -->
+<table style="width:60%;">
+<colgroup>
+<col style="width: 59%" />
+</colgroup>
+<tbody>
+<tr>
+<td><pre><code>           Initiator      Responder</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>NN             -              -</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>NK             -              3</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>NX             -              1</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>XN             2              -</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>XK             8              3</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>XX             8              1</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KN             7              -</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KK             5              5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KX             7              6</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IN             0              -</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IK             4              3</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IX             0              6</code></pre></td>
+</tr>
+</tbody>
+</table>
+<h1 id="protocol-names-and-modifiers">8. Protocol names and
+modifiers</h1>
+<p>To produce a <strong>PQNoise protocol name</strong> for
+<code>Initialize()</code> you concatenate the ASCII string
+<code>"PQNoise_"</code> with four underscore-separated name sections
+which sequentially name the handshake pattern, the DH functions, the
+cipher functions, and then the hash functions. The resulting name must
+be 255 bytes or less. Examples:</p>
+<ul>
+<li><code>PQNoise_XX_MLKEM768_AESGCM128_SHA256</code></li>
+<li><code>PQNoise_N_MLKEM512_ChaChaPoly_BLAKE2s</code></li>
+<li><code>PQNoise_IK_Kopis512_ChaChaPoly_BLAKE2b</code></li>
+</ul>
+<p>Each name section must consist only of alphanumeric characters
+(i.e. characters in one of the ranges <code>"A"</code>…<code>"Z"</code>,
+<code>"a"</code>…<code>"z"</code>, and
+<code>"0"</code>…<code>"9"</code>), and the two special characters
+<code>"+"</code> and <code>"/"</code>.</p>
+<p>Additional rules apply to each name section, as specified below.</p>
+<h2 id="handshake-pattern-name-section">8.1. Handshake pattern name
+section</h2>
+<p>A handshake pattern name section contains a handshake pattern name
+plus a sequence of zero or more <strong>pattern modifiers</strong>.</p>
+<p>The handshake pattern name must be an uppercase ASCII string
+containing only alphabetic characters or numerals
+(e.g. <code>"XX"</code> or <code>"IK"</code>).</p>
+<p>Pattern modifiers specify arbitrary extensions or modifications to
+the behavior specified by the handshake pattern. For example, a modifier
+could be applied to a handshake pattern which transforms it into a
+different pattern according to some rule. The <code>"psk0"</code>
+modifier is an example of this, and will be defined later in this
+document.</p>
+<p>A pattern modifier is named with a lowercase alphanumeric ASCII
+string which must begin with an alphabetic character (not a numeral).
+The pattern modifier is appended to the base pattern as described
+below:</p>
+<p>The first modifier added onto a base pattern is simply appended. Thus
+the <code>"psk0"</code> modifier, when added to the <code>"XX"</code>
+pattern, produces <code>"XXpsk0"</code>. Additional modifiers are
+separated with a plus sign. Thus, adding the <code>"hfs"</code> modifier
+would result in the name section <code>"XXhfs+psk0"</code>, or a full
+protocol name such as
+<code>"PQNoise_XXhfs+psk0_MLKEM768_AESGCM128_SHA256"</code>.</p>
+<p>In some cases the sequential ordering of modifiers will specify
+different protocols. However, if the order of some modifiers does not
+matter, then they are required to be sorted alphabetically (this is an
+arbitrary convention to ensure interoperability).</p>
+<h2 id="cryptographic-algorithm-name-sections">8.2. Cryptographic
+algorithm name sections</h2>
+<p>The rules for the DH, cipher, and hash name sections are identical.
+Each name section must contain one or more algorithm names separated by
+plus signs.</p>
+<p>Each algorithm name must consist solely of alphanumeric characters
+and the forward-slash character (<code>"/"</code>). Algorithm names are
+recommended to be short, and to use the <code>"/"</code> character only
+when necessary to avoid ambiguity (e.g. <code>"SHA3/256"</code> is
+preferable to <code>"SHA3256"</code>).</p>
+<p>In most cases there will be a single algorithm name in each name
+section (i.e. no plus signs). Multiple algorithm names are only used
+when called for by the pattern or a modifier.</p>
+<p>None of the patterns or modifiers in this document require multiple
+algorithm names in any name section. However, this functionality might
+be useful in future extensions.</p>
+<h1 id="pre-shared-symmetric-keys">9. Pre-shared symmetric keys</h1>
+<p>PQNoise provides a <strong>pre-shared symmetric key</strong> or
+<strong>PSK</strong> mode to support protocols where both parties have a
+32-byte shared secret key.</p>
+<p>Using a PSK provides some mitigation against a potential future
+weaknesses in the protocol’s chosen KEM, in situations where it is
+feasible to securely distribute a PSK out of band.</p>
+<h2 id="cryptographic-functions">9.1. Cryptographic functions</h2>
+<p>PSK mode uses the <code>SymmetricState.MixKeyAndHash()</code>
+function to mix the PSK into both the encryption keys and the
+<code>h</code> value.</p>
+<p>Note that <code>MixKeyAndHash()</code> uses
+<code>HKDF(..., 3)</code>. The third output from <code>HKDF()</code> is
+used as the <code>k</code> value so that calculation of <code>k</code>
+may be skipped if <code>k</code> is not used.</p>
+<h2 id="handshake-tokens">9.2. Handshake tokens</h2>
+<p>In a PSK handshake, a <code>"psk"</code> token is allowed to appear
+one or more times in a handshake pattern. This token can only appear in
+message patterns (not pre-message patterns). This token is processed by
+calling <code>MixKeyAndHash(psk)</code>, where <code>psk</code> is a
+32-byte secret value provided by the application.</p>
+<p>In non-PSK handshakes, the <code>"e"</code> token in a pre-message
+pattern or message pattern always results in a call to
+<code>MixHash(e.public_key)</code>. In a PSK handshake, all of these
+calls are followed by <code>MixKey(e.public_key)</code>. In conjunction
+with the validity rule in the next section, this ensures that PSK-based
+encryption uses encryption keys that are randomized using ephemeral
+public keys as nonces.</p>
+<h2 id="validity-rule">9.3. Validity rule</h2>
+<p>To prevent catastrophic key reuse, handshake patterns using the
+<code>"psk"</code> token must follow an additional validity rule:</p>
+<ul>
+<li>A party may not send any encrypted data after it processes a
+<code>"psk"</code> token unless it has previously sent an ephemeral
+public key (an <code>"e"</code> token) or an ephemeral KEM ciphertext
+(an <code>"ekem"</code> token), either before or after the
+<code>"psk"</code> token.</li>
+</ul>
+<p>This rule guarantees that a <code>k</code> derived from a PSK will
+never be used for encryption unless it has also been randomized by
+locally chosen ephemeral values, either the ephemeral public key or the
+ephemeral KEM secret.</p>
+<h2 id="pattern-modifiers">9.4. Pattern modifiers</h2>
+<p>To indicate PSK mode and the placement of the <code>"psk"</code>
+token, pattern modifiers are used (see <a
+href="#protocol-names-and-modifiers">Section 8</a>). The modifier
+<code>psk0</code> places a <code>"psk"</code> token at the beginning of
+the first handshake message. The modifiers <code>psk1</code>,
+<code>psk2</code>, etc., place a <code>"psk"</code> token at the end of
+the first, second, etc., handshake message.</p>
+<p>Any pattern using one of these modifiers must process tokens
+according to the rules in <a href="#handshake-tokens%5D">Section
+9.2</a>, and must follow the validity rule in <a
+href="#validity-rule">Section 9.3</a>.</p>
+<p>The table below lists some unmodified patterns on the left, and the
+recommended PSK pattern on the right:</p>
+<table>
+<colgroup>
+<col style="width: 45%" />
+<col style="width: 54%" />
+</colgroup>
+<tbody>
+<tr>
+<td><pre><code>NN:
+  -&gt; e
+  &lt;- ekem</code></pre></td>
+<td><pre><code>NNpsk0:
+  -&gt; psk, e
+  &lt;- ekee</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>NN:
+  -&gt; e
+  &lt;- ekem</code></pre></td>
+<td><pre><code>NNpsk2:
+  -&gt; e
+  &lt;- ekem, psk</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>NK:
+  &lt;- s
+  ...
+  -&gt; skem, e
+  &lt;- ekem</code></pre></td>
+<td><pre><code>NKpsk0:
+  &lt;- s
+  ...
+  -&gt; psk, skem, e
+  &lt;- ekem</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>NK:
+  &lt;- s
+  ...
+  -&gt; skem, e
+  &lt;- ekem</code></pre></td>
+<td><pre><code>NKpsk2:
+  &lt;- s
+  ...
+  -&gt; skem, e
+  &lt;- ekem, psk</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>NX:
+  -&gt; e
+  &lt;- ekem, s
+  -&gt; skem</code></pre></td>
+<td><pre><code> NXpsk3:
+   -&gt; e
+   &lt;- ekem, s
+   -&gt; skem, psk</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>XN:
+  -&gt; e
+  &lt;- ekem
+  -&gt; s
+  &lt;- skem</code></pre></td>
+<td><pre><code> XNpsk4:
+   -&gt; e
+   &lt;- ekem
+   -&gt; s
+   &lt;- skem, psk</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>XK:
+  &lt;- s
+  ...
+  -&gt; skem, e
+  &lt;- ekem
+  -&gt; s
+  &lt;- skem</code></pre></td>
+<td><pre><code> XKpsk4:
+   &lt;- s
+   ...
+   -&gt; skem, e
+   &lt;- ekem
+   -&gt; s
+   &lt;- skem, psk</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>XX:
+  -&gt; e
+  &lt;- ekem, s
+  -&gt; skem, s
+  &lt;- skem</code></pre></td>
+<td><pre><code> XXpsk4:
+   -&gt; e
+   &lt;- ekem, s
+   -&gt; skem, s
+   &lt;- skem, psk</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KN:
+  -&gt; s
+  ...
+  -&gt; e
+  &lt;- ekem, skem</code></pre></td>
+<td><pre><code>  KNpsk0:
+    -&gt; s
+    ...
+    -&gt; psk, e
+    &lt;- ekem, skem</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KN:
+  -&gt; s
+  ...
+  -&gt; e
+  &lt;- ekem, skem</code></pre></td>
+<td><pre><code>  KNpsk2:
+    -&gt; s
+    ...
+    -&gt; e
+    &lt;- ekem, skem, psk</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KK:
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; skem, e
+  &lt;- ekem, skem</code></pre></td>
+<td><pre><code>  KKpsk0:
+    -&gt; s
+    &lt;- s
+    ...
+    -&gt; psk, skem, e
+    &lt;- ekem, skem</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KK:
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; skem, e
+  &lt;- ekem, skem</code></pre></td>
+<td><pre><code>  KKpsk2:
+    -&gt; s
+    &lt;- s
+    ...
+    -&gt; skem, e
+    &lt;- ekem, skem, psk</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KX:
+  -&gt; s
+  ...
+  -&gt; e
+  &lt;- ekem, skem, s
+  -&gt; skem</code></pre></td>
+<td><pre><code>   KXpsk3:
+     -&gt; s
+     ...
+     -&gt; e
+     &lt;- ekem, skem, s
+     -&gt; skem, psk</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IN:
+  -&gt; e, s
+  &lt;- ekem, skem</code></pre></td>
+<td><pre><code>   INpsk1:
+     -&gt; e, s, psk
+     &lt;- ekem, skem</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IN:
+  -&gt; e, s
+  &lt;- ekem, skem</code></pre></td>
+<td><pre><code>   INpsk2:
+     -&gt; e, s
+     &lt;- ekem, skem, psk</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IK:
+  &lt;- s
+  ...
+  -&gt; skem, e, s
+  &lt;- ekem, skem</code></pre></td>
+<td><pre><code>   IKpsk1:
+     &lt;- s
+     ...
+     -&gt; skem, e, s, psk
+     &lt;- ekem, skem</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IK:
+  &lt;- s
+  ...
+  -&gt; skem, e, s
+  &lt;- ekem, skem</code></pre></td>
+<td><pre><code>   IKpsk2:
+     &lt;- s
+     ...
+     -&gt; skem, e, s
+     &lt;- ekem, skem, psk</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IX:
+  -&gt; e, s
+  &lt;- ekem, skem, s
+  -&gt; skem</code></pre></td>
+<td><pre><code>   IXpsk3:
+     -&gt; e, s
+     &lt;- ekem, skem, s
+     -&gt; skem, psk</code></pre></td>
+</tr>
+</tbody>
+</table>
+<p>The above list does not exhaust all possible patterns that can be
+formed with these modifiers. In particular, any of these PSK modifiers
+can be safely applied to any previously named pattern, resulting in
+patterns like <code>IKpsk0</code>, <code>KKpsk1</code>, or even
+<code>XXpsk0+psk3</code>, which aren’t listed above.</p>
+<p>This still doesn’t exhaust all the ways that <code>"psk"</code>
+tokens could be used outside of these modifiers (e.g. placement of
+<code>"psk"</code> tokens in the middle of a message pattern). Defining
+additional PSK modifiers is outside the scope of this document.</p>
+<h1 id="compound-protocols">10. Compound protocols</h1>
+<h2 id="rationale-for-compound-protocols">10.1. Rationale for compound
+protocols</h2>
+<p>So far we’ve assumed Alice and Bob wish to execute a single PQNoise
+protocol chosen by the initiator (Alice). However, there are a number of
+reasons why Bob might wish to switch to a different PQNoise protocol
+after receiving Alice’s first message. For example:</p>
+<ul>
+<li><p>Alice might have chosen a PQNoise protocol based on a cipher,
+KEM, or handshake pattern which Bob doesn’t support.</p></li>
+<li><p>Alice might have sent a “zero-RTT” encrypted initial message
+based on an out-of-date version of Bob’s static public key or
+PSK.</p></li>
+</ul>
+<p>Handling these scenarios requires a <strong>compound
+protocol</strong> where Bob switches from the initial PQNoise protocol
+chosen by Alice to a new PQNoise protocol. In such a compound protocol
+the roles of initiator and responder would be reversed - Bob would
+become the initiator of the new PQNoise protocol, and Alice the
+responder.</p>
+<p>Compound protocols introduce significant complexity as Alice needs to
+advertise the PQNoise protocol she is beginning with and the protocol(s)
+she is capable of switching to, and both parties have to negotiate a
+secure transition.</p>
+<p>These details are largely out of scope for this document.</p>
+<h1 id="advanced-features">11. Advanced features</h1>
+<h2 id="dummy-keys">11.1. Dummy keys</h2>
+<p>Consider a protocol where an initiator will authenticate herself if
+the responder requests it. This could be viewed as the initiator
+choosing between patterns like <code>NX</code> and <code>XX</code> based
+on some value inside the responder’s first handshake payload.</p>
+<p>PQNoise doesn’t directly support this. Instead, this could be
+simulated by always executing <code>XX</code>. The initiator can
+simulate the <code>NX</code> case by sending a <strong>dummy static
+public key</strong> if authentication is not requested. The value of the
+dummy public key doesn’t matter.</p>
+<p>This technique is simple, since it allows use of a single handshake
+pattern. It also doesn’t reveal which option was chosen from message
+sizes or computation time. It could be extended to allow an
+<code>XX</code> pattern to support any permutation of authentications
+(initiator only, responder only, both, or none).</p>
+<p>Similarly, <strong>dummy PSKs</strong> (e.g. a PSK of all zeros)
+would allow a protocol to optionally support PSKs.</p>
+<h2 id="channel-binding">11.2. Channel binding</h2>
+<p>Parties might wish to execute a PQNoise protocol, then perform
+authentication at the application layer using signatures, passwords, or
+something else.</p>
+<p>To support this, PQNoise libraries may call
+<code>GetHandshakeHash()</code> after the handshake is complete and
+expose the returned value to the application as a <strong>handshake
+hash</strong> which uniquely identifies the PQNoise session.</p>
+<p>Parties can then sign the handshake hash, or hash it along with their
+password, to get an authentication token which has a “channel binding”
+property: the token can’t be used by the receiving party with a
+different sesssion.</p>
+<h2 id="rekey">11.3. Rekey</h2>
+<p>Parties might wish to periodically update their cipherstate keys
+using a one-way function, so that a compromise of cipherstate keys will
+not decrypt older messages. Periodic rekey might also be used to reduce
+the volume of data encrypted under a single cipher key (this is usually
+not important with good ciphers, though note the discussion on
+<code>AESGCM</code> data volumes in <a
+href="#security-considerations">Section 14</a>).</p>
+<p>To enable this, PQNoise supports a <code>Rekey()</code> function
+which may be called on a <code>CipherState</code>.</p>
+<p>It is up to to the application if and when to perform rekey. For
+example:</p>
+<ul>
+<li><p>Applications might perform <strong>continuous rekey</strong>,
+where they rekey the relevant cipherstate after every transport message
+sent or received. This is simple and gives good protection to older
+ciphertexts, but might be difficult for implementations where changing
+keys is expensive.</p></li>
+<li><p>Applications might rekey a cipherstate automatically after it has
+has been used to send or receive some number of messages.</p></li>
+<li><p>Applications might choose to rekey based on arbitrary criteria,
+in which case they signal this to the other party by sending a
+message.</p></li>
+</ul>
+<p>Applications must make these decisions on their own; there are no
+pattern modifiers which specify rekey behavior.</p>
+<p>Note that rekey only updates the cipherstate’s <code>k</code> value,
+it doesn’t reset the cipherstate’s <code>n</code> value, so applications
+performing rekey must still perform a new handshake if sending
+2<sup>64</sup> or more transport messages.</p>
+<h2 id="out-of-order-transport-messages">11.4. Out-of-order transport
+messages</h2>
+<p>In some use cases, PQNoise transport messages might be lost or arrive
+out-of-order (e.g. when messages are sent over UDP). To handle this, an
+application protocol can send the <code>n</code> value used for
+encrypting each transport message alongside that message. On receiving
+such a message the recipient would call the <code>SetNonce()</code>
+function on the receiving <code>CipherState</code> using the received
+<code>n</code> value.</p>
+<p>Recipients doing this must track the received <code>n</code> values
+for which decryption was successful and reject any message which repeats
+such a value, to prevent replay attacks.</p>
+<p>Note that lossy and out-of-order message delivery introduces many
+other concerns (including out-of-order handshake messages and denial of
+service risks) which are outside the scope of this document.</p>
+<h2 id="half-duplex-protocols">11.5. Half-duplex protocols</h2>
+<p>In some application protocols the parties strictly alternate sending
+messages. In this case PQNoise can be used in a
+<strong>half-duplex</strong> mode <span class="citation"
+data-cites="blinker"><a href="#ref-blinker"
+role="doc-biblioref">[4]</a></span> where the first
+<code>CipherState</code> returned by <code>Split()</code> is used for
+encrypting messages in both directions, and the second
+<code>CipherState</code> returned by <code>Split()</code> is unused.
+This allows some small optimizations, since <code>Split()</code> only
+has to calculate a single output <code>CipherState</code>, and both
+parties only need to store a single <code>CipherState</code> during the
+transport phase.</p>
+<p>This feature must be used with extreme caution. In particular, it
+would be a catastrophic security failure if the protocol is not strictly
+alternating and both parties encrypt different messages using the same
+<code>CipherState</code> and nonce value.</p>
+<h1 id="dh-functions-cipher-functions-and-hash-functions">12. DH
+functions, cipher functions, and hash functions</h1>
+<p><strong>TODO</strong>: everything beyond this point is just the
+original Noise specification with s/Noise/PQNoise/ in text, I haven’t
+yet reworked it.</p>
+<h2 id="the-25519-dh-functions">12.1. The <code>25519</code> DH
+functions</h2>
+<ul>
+<li><p><strong><code>GENERATE_KEYPAIR()</code></strong>: Returns a new
+Curve25519 key pair.</p></li>
+<li><p><strong><code>DH(keypair, public_key)</code></strong>: Executes
+the Curve25519 DH function (aka “X25519” in <span class="citation"
+data-cites="rfc7748"><a href="#ref-rfc7748"
+role="doc-biblioref">[5]</a></span>). Invalid public key values will
+produce an output of all zeros.</p>
+<p>Alternatively, implementations are allowed to detect inputs that
+produce an all-zeros output and signal an error instead. This behavior
+is discouraged because it adds complexity and implementation variance,
+and does not improve security. This behavior is allowed because it might
+match the behavior of some software.</p></li>
+<li><p><strong><code>DHLEN</code></strong> = 32</p></li>
+</ul>
+<h2 id="the-448-dh-functions">12.2. The <code>448</code> DH
+functions</h2>
+<ul>
+<li><p><strong><code>GENERATE_KEYPAIR()</code></strong>: Returns a new
+Curve448 key pair.</p></li>
+<li><p><strong><code>DH(keypair, public_key)</code></strong>: Executes
+the Curve448 DH function (aka “X448” in <span class="citation"
+data-cites="rfc7748"><a href="#ref-rfc7748"
+role="doc-biblioref">[5]</a></span>). Invalid public key values will
+produce an output of all zeros.</p>
+<p>Alternatively, implementations are allowed to detect inputs that
+produce an all-zeros output and signal an error instead. This behavior
+is discouraged because it adds complexity and implementation variance,
+and does not improve security. This behavior is allowed because it might
+match the behavior of some software.</p></li>
+<li><p><strong><code>DHLEN</code></strong> = 56</p></li>
+</ul>
+<h2 id="the-chachapoly-cipher-functions">12.3. The
+<code>ChaChaPoly</code> cipher functions</h2>
+<ul>
+<li><strong><code>ENCRYPT(k, n, ad, plaintext)</code> /
+<code>DECRYPT(k, n, ad, ciphertext)</code></strong>:
+<code>AEAD_CHACHA20_POLY1305</code> from <span class="citation"
+data-cites="rfc7539"><a href="#ref-rfc7539"
+role="doc-biblioref">[6]</a></span>. The 96-bit nonce is formed by
+encoding 32 bits of zeros followed by little-endian encoding of
+<code>n</code>. (Earlier implementations of ChaCha20 used a 64-bit
+nonce; with these implementations it’s compatible to encode
+<code>n</code> directly into the ChaCha20 nonce without the 32-bit zero
+prefix).</li>
+</ul>
+<h2 id="the-aesgcm-cipher-functions">12.4. The <code>AESGCM</code>
+cipher functions</h2>
+<ul>
+<li><strong><code>ENCRYPT(k, n, ad, plaintext)</code> /
+<code>DECRYPT(k, n, ad, ciphertext)</code></strong>: AES256 with GCM
+from <span class="citation" data-cites="nistgcm"><a href="#ref-nistgcm"
+role="doc-biblioref">[7]</a></span> with a 128-bit tag appended to the
+ciphertext. The 96-bit nonce is formed by encoding 32 bits of zeros
+followed by big-endian encoding of <code>n</code>.</li>
+</ul>
+<h2 id="the-sha256-hash-function">12.5. The <code>SHA256</code> hash
+function</h2>
+<ul>
+<li><strong><code>HASH(input)</code></strong>: <code>SHA-256</code> from
+<span class="citation" data-cites="nistsha2"><a href="#ref-nistsha2"
+role="doc-biblioref">[8]</a></span>.</li>
+<li><strong><code>HASHLEN</code></strong> = 32</li>
+<li><strong><code>BLOCKLEN</code></strong> = 64</li>
+</ul>
+<h2 id="the-sha512-hash-function">12.6. The <code>SHA512</code> hash
+function</h2>
+<ul>
+<li><strong><code>HASH(input)</code></strong>: <code>SHA-512</code> from
+<span class="citation" data-cites="nistsha2"><a href="#ref-nistsha2"
+role="doc-biblioref">[8]</a></span>.</li>
+<li><strong><code>HASHLEN</code></strong> = 64</li>
+<li><strong><code>BLOCKLEN</code></strong> = 128</li>
+</ul>
+<h2 id="the-blake2s-hash-function">12.7. The <code>BLAKE2s</code> hash
+function</h2>
+<ul>
+<li><strong><code>HASH(input)</code></strong>: <code>BLAKE2s</code> from
+<span class="citation" data-cites="rfc7693"><a href="#ref-rfc7693"
+role="doc-biblioref">[9]</a></span> with digest length 32.</li>
+<li><strong><code>HASHLEN</code></strong> = 32</li>
+<li><strong><code>BLOCKLEN</code></strong> = 64</li>
+</ul>
+<h2 id="the-blake2b-hash-function">12.8. The <code>BLAKE2b</code> hash
+function</h2>
+<ul>
+<li><strong><code>HASH(input)</code></strong>: <code>BLAKE2b</code> from
+<span class="citation" data-cites="rfc7693"><a href="#ref-rfc7693"
+role="doc-biblioref">[9]</a></span> with digest length 64.</li>
+<li><strong><code>HASHLEN</code></strong> = 64</li>
+<li><strong><code>BLOCKLEN</code></strong> = 128</li>
+</ul>
+<h1 id="application-responsibilities">13. Application
+responsibilities</h1>
+<p>An application built on PQNoise must consider several issues:</p>
+<ul>
+<li><p><strong>Choosing crypto functions</strong>: The
+<code>25519</code> DH functions are recommended for typical uses, though
+the <code>448</code> DH functions might offer extra security in case a
+cryptanalytic attack is developed against elliptic curve cryptography.
+The <code>448</code> DH functions should be used with a 512-bit hash
+like <code>SHA512</code> or <code>BLAKE2b</code>. The <code>25519</code>
+DH functions may be used with a 256-bit hash like <code>SHA256</code> or
+<code>BLAKE2s</code>, though a 512-bit hash might offer extra security
+in case a cryptanalytic attack is developed against the smaller hash
+functions. <code>AESGCM</code> is hard to implement with high speed and
+constant time in software.</p></li>
+<li><p><strong>Extensibility</strong>: Applications are recommended to
+use an extensible data format for the payloads of all messages
+(e.g. JSON, Protocol Buffers). This ensures that fields can be added in
+the future which are ignored by older implementations.</p></li>
+<li><p><strong>Padding</strong>: Applications are recommended to use a
+data format for the payloads of all encrypted messages that allows
+padding. This allows implementations to avoid leaking information about
+message sizes. Using an extensible data format, per the previous bullet,
+may be sufficient.</p></li>
+<li><p><strong>Session termination</strong>: Applications must consider
+that a sequence of PQNoise transport messages could be truncated by an
+attacker. Applications should include explicit length fields or
+termination signals inside of transport payloads to signal the end of an
+interactive session, or the end of a one-way stream of transport
+messages.</p></li>
+<li><p><strong>Length fields</strong>: Applications must handle any
+framing or additional length fields for PQNoise messages, considering
+that a PQNoise message may be up to 65535 bytes in length. If an
+explicit length field is needed, applications are recommended to add a
+16-bit big-endian length field prior to each message.</p></li>
+<li><p><strong>Negotiation data</strong>: Applications might wish to
+support the transmission of some negotiation data prior to the
+handshake, and/or prior to each handshake message. Negotiation data
+could contain things like version information and identifiers for
+PQNoise protocols. For example, a simple approach would be to send a
+single-byte type field prior to each PQNoise handshake message. More
+flexible approaches might send extensible structures such as protobufs.
+Negotiation data introduces significant complexity and security risks
+such as rollback attacks (see next section).</p></li>
+</ul>
+<h1 id="security-considerations">14. Security considerations</h1>
+<p>This section collects various security considerations:</p>
+<ul>
+<li><p><strong>Authentication</strong>: A PQNoise protocol with static
+public keys verifies that the corresponding private keys are possessed
+by the participant(s), but it’s up to the application to determine
+whether the remote party’s static public key is acceptable. Methods for
+doing so include certificates which sign the public key (and which may
+be passed in handshake payloads), preconfigured lists of public keys, or
+“pinning” / “key-continuity” approaches where parties remember public
+keys they encounter and check whether the same party presents the same
+public key in the future.</p></li>
+<li><p><strong>Session termination</strong>: Preventing attackers from
+truncating a stream of transport messages is an application
+responsibility. See previous section.</p></li>
+<li><p><strong>Rollback</strong>: If parties decide on a PQNoise
+protocol based on some previous negotiation that is not included as
+prologue, then a rollback attack might be possible. This is a particular
+risk with compound protocols, and requires careful attention if a
+PQNoise handshake is preceded by communication between the
+parties.</p></li>
+<li><p><strong>Static key reuse</strong>: A static key pair used with
+PQNoise should be used with a single hash algorithm. The key pair should
+not be used outside of PQNoise, nor with multiple hash algorithms. It is
+acceptable to use the static key pair with different PQNoise protocols,
+provided the same hash algorithm is used in all of them. (Reusing a
+PQNoise static key pair outside of PQNoise would require extremely
+careful analysis to ensure the uses don’t compromise each other, and
+security proofs are preserved).</p></li>
+<li><p><strong>PSK reuse</strong>: A PSK used with PQNoise should be
+used with a single hash algorithm. The PSK should not be used outside of
+PQNoise, nor with multiple hash algorithms.</p></li>
+<li><p><strong>Ephemeral key reuse</strong>: Every party in a PQNoise
+protocol must send a fresh ephemeral public key prior to sending any
+encrypted data. Ephemeral keys must never be reused. Violating these
+rules is likely to cause catastrophic key reuse. This is one rationale
+behind the patterns in <a href="#handshake-patterns">Section 7</a>, and
+the validity rules in <a href="#handshake-pattern-validity">Section
+7.3</a>. It’s also the reason why one-way handshakes only allow
+transport messages from the sender, not the recipient.</p></li>
+<li><p><strong>Misusing public keys as secrets</strong>: It might be
+tempting to use a pattern with a pre-message public key and assume that
+a successful handshake implies the other party’s knowledge of the public
+key. Unfortunately, this is not the case, since setting public keys to
+invalid values might cause predictable DH output. For example, a
+<code>PQNoise_NK_25519</code> initiator might send an invalid ephemeral
+public key to cause a known DH output of all zeros, despite not knowing
+the responder’s static public key. If the parties want to authenticate
+with a shared secret, it should be used as a PSK.</p></li>
+<li><p><strong>Channel binding</strong>: Depending on the DH functions,
+it might be possible for a malicious party to engage in multiple
+sessions that derive the same shared secret key by setting public keys
+to invalid values that cause predictable DH output (as in the previous
+bullet). It might also be possible to set public keys to equivalent
+values that cause the same DH output for different inputs. This is why a
+higher-level protocol should use the handshake hash (<code>h</code>) for
+a unique channel binding, instead of <code>ck</code>, as explained in <a
+href="#channel-binding">Section 11.2</a>.</p></li>
+<li><p><strong>Incrementing nonces</strong>: Reusing a nonce value for
+<code>n</code> with the same key <code>k</code> for encryption would be
+catastrophic. Implementations must carefully follow the rules for
+nonces. Nonces are not allowed to wrap back to zero due to integer
+overflow, and the maximum nonce value is reserved. This means parties
+are not allowed to send more than 2<sup>64</sup>-1 transport
+messages.</p></li>
+<li><p><strong>Protocol names</strong>: The protocol name used with
+<code>Initialize()</code> must uniquely identify the combination of
+handshake pattern and crypto functions for every key it’s used with
+(whether ephemeral key pair, static key pair, or PSK). If the same
+secret key was reused with the same protocol name but a different set of
+cryptographic operations then bad interactions could occur.</p></li>
+<li><p><strong>Pre-shared symmetric keys</strong>: Pre-shared symmetric
+keys must be secret values with 256 bits of entropy.</p></li>
+<li><p><strong>Data volumes</strong>: The <code>AESGCM</code> cipher
+functions suffer a gradual reduction in security as the volume of data
+encrypted under a single key increases. Due to this, parties should not
+send more than 2<sup>56</sup> bytes (roughly 72 petabytes) encrypted by
+a single key. If sending such large volumes of data is a possibility
+then different cipher functions should be chosen.</p></li>
+<li><p><strong>Hash collisions</strong>: If an attacker can find hash
+collisions on prologue data or the handshake hash, they may be able to
+perform “transcript collision” attacks that trick the parties into
+having different views of handshake data. It is important to use PQNoise
+with collision-resistant hash functions, and replace the hash function
+at any sign of weakness.</p></li>
+<li><p><strong>Implementation fingerprinting</strong>: If this protocol
+is used in settings with anonymous parties, care should be taken that
+implementations behave identically in all cases. This may require
+mandating exact behavior for handling of invalid DH public
+keys.</p></li>
+</ul>
+<h1 id="rationales">15. Rationales</h1>
+<p>This section collects various design rationales.</p>
+<h2 id="ciphers-and-encryption">15.1. Ciphers and encryption</h2>
+<p>Cipher keys and PSKs are 256 bits because:</p>
+<ul>
+<li><p>256 bits is a conservative length for cipher keys when
+considering cryptanalytic safety margins, time/memory tradeoffs,
+multi-key attacks, rekeying, and quantum attacks.</p></li>
+<li><p>Pre-shared key length is fixed to simplify testing and
+implementation, and to deter users from mistakenly using low-entropy
+passwords as pre-shared keys.</p></li>
+</ul>
+<p>Nonces are 64 bits because:</p>
+<ul>
+<li><p>Some ciphers only have 64 bit nonces (e.g. Salsa20).</p></li>
+<li><p>64 bit nonces were used in the initial specification and
+implementations of ChaCha20, so PQNoise nonces can be used with these
+implementations.</p></li>
+<li><p>64 bits makes it easy for the entire nonce to be treated as an
+integer and incremented.</p></li>
+<li><p>96 bits nonces (e.g. in RFC 7539) are a confusing size where it’s
+unclear if random nonces are acceptable.</p></li>
+</ul>
+<p>The authentication data in a ciphertext (i.e. the authentication tag
+or synthetic IV) is 128 bits because:</p>
+<ul>
+<li><p>Some algorithms (e.g. GCM) lose more security than an ideal MAC
+when truncated.</p></li>
+<li><p>PQNoise may be used in a wide variety of contexts, including
+where attackers can receive rapid feedback on whether guesses for
+authentication data are correct.</p></li>
+<li><p>A single fixed length is simpler than supporting variable-length
+tags.</p></li>
+</ul>
+<p>Ciphertexts are required to be indistinguishable from random
+because:</p>
+<ul>
+<li>This makes PQNoise protocols easier to use with random padding (for
+length-hiding), or for censorship-resistant “unfingerprintable”
+protocols, or with steganography. However note that ephemeral keys are
+likely to be distinguishable from random unless a technique such as
+Elligator <span class="citation" data-cites="elligator"><a
+href="#ref-elligator" role="doc-biblioref">[10]</a></span> is used.</li>
+</ul>
+<p>Rekey defaults to using encryption with the nonce 2<sup>64</sup>-1
+because:</p>
+<ul>
+<li>With <code>AESGCM</code> and <code>ChaChaPoly</code> rekey can be
+computed efficiently (the “encryption” just needs to apply the cipher,
+and can skip calculation of the authentication tag).</li>
+</ul>
+<p>Rekey doesn’t reset <code>n</code> to zero because:</p>
+<ul>
+<li><p>Leaving <code>n</code> unchanged is simple.</p></li>
+<li><p>If the cipher has a weakness such that repeated rekeying gives
+rise to a cycle of keys, then letting <code>n</code> advance will avoid
+catastrophic reuse of the same <code>k</code> and <code>n</code>
+values.</p></li>
+<li><p>Letting <code>n</code> advance puts a bound on the total number
+of encryptions that can be performed with a set of derived
+keys.</p></li>
+</ul>
+<p>The <code>AESGCM</code> data volume limit is 2<sup>56</sup> bytes
+because:</p>
+<ul>
+<li>This is 2<sup>52</sup> AES blocks (each block is 16 bytes). The
+limit is based on the risk of birthday collisions being used to rule out
+plaintext guesses. The probability an attacker could rule out a random
+guess on a 2<sup>56</sup> byte plaintext is less than 1 in 1 million
+(roughly (2<sup>52</sup> * 2<sup>52</sup>) / 2<sup>128</sup>).</li>
+</ul>
+<p>Cipher nonces are big-endian for <code>AESGCM</code>, and
+little-endian for <code>ChaCha20</code>, because:</p>
+<ul>
+<li><p>ChaCha20 uses a little-endian block counter internally.</p></li>
+<li><p>AES-GCM uses a big-endian block counter internally.</p></li>
+<li><p>It makes sense to use consistent endianness in the cipher
+code.</p></li>
+</ul>
+<h2 id="hash-functions-and-hashing">15.2. Hash functions and
+hashing</h2>
+<p>The recommended hash function families are SHA2 and BLAKE2
+because:</p>
+<ul>
+<li><p>SHA2 is widely available and is often used alongside
+AES.</p></li>
+<li><p>BLAKE2 is fast and similar to ChaCha20.</p></li>
+</ul>
+<p>Hash output lengths of both 256 bits and 512 bits are supported
+because:</p>
+<ul>
+<li><p>256-bit hashes provide sufficient collision resistance at the
+128-bit security level.</p></li>
+<li><p>The 256-bit hashes (SHA-256 and BLAKE2s) require less RAM, and
+less computation when processing smaller inputs (due to smaller block
+size), than SHA-512 and BLAKE2b.</p></li>
+<li><p>SHA-256 and BLAKE2s are faster on 32-bit processors than the
+larger hashes, which use 64-bit operations internally.</p></li>
+</ul>
+<p>The <code>MixKey()</code> design uses HKDF because:</p>
+<ul>
+<li><p>HKDF is well-known and HKDF “chains” are used in similar ways in
+other protocols (e.g. Signal, IPsec, TLS 1.3).</p></li>
+<li><p>HKDF has a published analysis <span class="citation"
+data-cites="hkdfpaper"><a href="#ref-hkdfpaper"
+role="doc-biblioref">[11]</a></span>.</p></li>
+<li><p>HKDF applies multiple layers of hashing between each
+<code>MixKey()</code> input. This “extra” hashing might mitigate the
+impact of hash function weakness.</p></li>
+</ul>
+<p>HMAC is used with all hash functions instead of allowing hashes to
+use a more specialized function (e.g. keyed BLAKE2), because:</p>
+<ul>
+<li><p>HKDF requires the use of HMAC, and some of the HKDF analysis in
+<span class="citation" data-cites="hkdfpaper"><a href="#ref-hkdfpaper"
+role="doc-biblioref">[11]</a></span> depends on the nested structure of
+HMAC.</p></li>
+<li><p>HMAC is widely used with Merkle-Damgard hashes such as SHA2. SHA3
+candidates such as Keccak and BLAKE were required to be suitable with
+HMAC. Thus, HMAC should be applicable to all widely-used hash
+functions.</p></li>
+<li><p>HMAC applies nested hashing to process each input. This “extra”
+hashing might mitigate the impact of hash function weakness.</p></li>
+<li><p>HMAC (and HKDF) are widely-used constructions. If some weakness
+is found in a hash function, cryptanalysts will likely analyze that
+weakness in the context of HMAC and HKDF.</p></li>
+<li><p>Applying HMAC consistently is simple, and avoids having custom
+designs with different cryptanalytic properties when using different
+hash functions.</p></li>
+<li><p>HMAC is easy to build on top of a hash function interface. If a
+more specialized function (e.g. keyed BLAKE2) can’t be implemented using
+only the underlying hash, then it is not guaranteed to be available
+everywhere the hash function is available.</p></li>
+</ul>
+<p><code>MixHash()</code> is used instead of sending all inputs directly
+through <code>MixKey()</code> because:</p>
+<ul>
+<li><p><code>MixHash()</code> is more efficient than
+<code>MixKey()</code>.</p></li>
+<li><p><code>MixHash()</code> produces a non-secret <code>h</code> value
+that might be useful to higher-level protocols, e.g. for
+channel-binding.</p></li>
+</ul>
+<p>The <code>h</code> value hashes handshake ciphertext instead of
+plaintext because:</p>
+<ul>
+<li><p>This ensures <code>h</code> is a non-secret value that can be
+used for channel-binding or other purposes without leaking secret
+information.</p></li>
+<li><p>This provides stronger guarantees against ciphertext
+malleability.</p></li>
+</ul>
+<h2 id="other">15.3. Other</h2>
+<p>Big-endian length fields are recommended because:</p>
+<ul>
+<li><p>Length fields are likely to be handled by parsing code where
+big-endian “network byte order” is traditional.</p></li>
+<li><p>Some ciphers use big-endian internally (e.g. GCM, SHA2).</p></li>
+<li><p>While it’s true that Curve25519, Curve448, and ChaCha20/Poly1305
+use little-endian, these will likely be handled by specialized
+libraries, so there’s not a strong argument for aligning with
+them.</p></li>
+</ul>
+<p>Session termination is left to the application because:</p>
+<ul>
+<li><p>Providing a termination signal in PQNoise doesn’t help the
+application much, since the application still has to use the signal
+correctly.</p></li>
+<li><p>For an application with its own termination signal, having a
+second termination signal in PQNoise is likely to be confusing rather
+than helpful.</p></li>
+</ul>
+<p>Explicit random nonces (like TLS “Random” fields) are not used
+because:</p>
+<ul>
+<li><p>One-time ephemeral public keys make explicit nonces
+unnecessary.</p></li>
+<li><p>Explicit nonces allow reuse of ephemeral public keys. However
+reusing ephemerals (with periodic replacement) is more complicated,
+requires a secure time source, is less secure in case of ephemeral
+compromise, and only provides a small optimization, since key generation
+can be done for a fraction of the cost of a DH operation.</p></li>
+<li><p>Explicit nonces increase message size.</p></li>
+<li><p>Explicit nonces make it easier to “backdoor” crypto
+implementations, e.g. by modifying the RNG so that key recovery data is
+leaked through the nonce fields.</p></li>
+</ul>
+<h1 id="ipr">16. IPR</h1>
+<p>The PQNoise specification (this document) is hereby placed in the
+public domain.</p>
+<h1 id="acknowledgements">17. Acknowledgements</h1>
+<p>PQNoise is inspired by:</p>
+<ul>
+<li>The NaCl and CurveCP protocols from Dan Bernstein et al <span
+class="citation" data-cites="nacl curvecp"><a href="#ref-nacl"
+role="doc-biblioref">[12]</a>, <a href="#ref-curvecp"
+role="doc-biblioref">[13]</a></span>.</li>
+<li>The SIGMA and HOMQV protocols from Hugo Krawczyk <span
+class="citation" data-cites="sigma homqv"><a href="#ref-sigma"
+role="doc-biblioref">[14]</a>, <a href="#ref-homqv"
+role="doc-biblioref">[15]</a></span>.</li>
+<li>The Ntor protocol from Ian Goldberg et al <span class="citation"
+data-cites="ntor"><a href="#ref-ntor"
+role="doc-biblioref">[16]</a></span>.</li>
+<li>The analysis of OTR by Mario Di Raimondo et al <span
+class="citation" data-cites="otr"><a href="#ref-otr"
+role="doc-biblioref">[17]</a></span>.</li>
+<li>The analysis by Caroline Kudla and Kenny Paterson of “Protocol 4” by
+Simon Blake-Wilson et al <span class="citation"
+data-cites="kudla2005 blakewilson1997"><a href="#ref-kudla2005"
+role="doc-biblioref">[18]</a>, <a href="#ref-blakewilson1997"
+role="doc-biblioref">[19]</a></span>.</li>
+<li>Mike Hamburg’s proposals for a sponge-based protocol framework,
+which led to STROBE <span class="citation"
+data-cites="moderncryptostrobe strobe"><a href="#ref-moderncryptostrobe"
+role="doc-biblioref">[20]</a>, <a href="#ref-strobe"
+role="doc-biblioref">[21]</a></span>.</li>
+<li>The KDF chains used in the Double Ratchet Algorithm <span
+class="citation" data-cites="doubleratchet"><a href="#ref-doubleratchet"
+role="doc-biblioref">[22]</a></span>.</li>
+</ul>
+<p>General feedback on the spec and design came from: Moxie Marlinspike,
+Jason Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake
+McGinty, Tiffany Bennett, Jonathan Rudenberg, Stephen Touset, Tony
+Arcieri, Alex Wied, Alexey Ermishkin, Olaoluwa Osuntokun, Karthik
+Bhargavan, and Nadim Kobeissi.</p>
+<p>Helpful editorial feedback came from: Tom Ritter, Karthik Bhargavan,
+David Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar
+Mokrynskyi, Keziah Elis Biermann, Justin Cormack, Katriel Cohn-Gordon,
+and Nadim Kobeissi.</p>
+<p>Helpful input and feedback on the key derivation design came from:
+Moxie Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein,
+J.P. Aumasson, and Jason Donenfeld.</p>
+<p>The PSK approach was largely motivated and designed by Jason
+Donenfeld, based on his experience with PSKs in WireGuard.</p>
+<p>The deferred patterns resulted from discussions with Justin Cormack.
+The pattern derivation rules in the Appendix are also from Justin
+Cormack.</p>
+<p>The security properties table for deferred patterns was derived by
+the PQNoise Explorer tool, from Nadim Kobeissi.</p>
+<p>The rekey design benefited from discussions with Rhys Weatherley,
+Alexey Ermishkin, and Olaoluwa Osuntokun.</p>
+<p>The BLAKE2 team (in particular J.P. Aumasson, Samuel Neves, and
+Zooko) provided helpful discussion on using BLAKE2 with PQNoise.</p>
+<p>Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on
+earlier versions.</p>
+<h1 id="appendices">18. Appendices</h1>
+<h2 id="deferred-patterns">18.1. Deferred patterns</h2>
+<p>The following table lists all 23 deferred handshake patterns in the
+right column, with their corresponding fundamental handshake pattern in
+the left column. See <a href="#handshake-patterns">Section 7</a> for an
+explanation of fundamental and deferred patterns.</p>
+<table style="width:85%;">
+<colgroup>
+<col style="width: 38%" />
+<col style="width: 45%" />
+</colgroup>
+<tbody>
+<tr>
+<td><pre><code>NK:
+  &lt;- s
+  ...
+  -&gt; e, es
+  &lt;- e, ee</code></pre></td>
+<td><pre><code>    NK1:
+      &lt;- s
+      ...
+      -&gt; e
+      &lt;- e, ee, es</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>NX:
+  -&gt; e
+  &lt;- e, ee, s, es</code></pre></td>
+<td><pre><code>    NX1:
+      -&gt; e
+      &lt;- e, ee, s
+      -&gt; es</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>XN:
+  -&gt; e
+  &lt;- e, ee
+  -&gt; s, se</code></pre></td>
+<td><pre><code>    X1N:
+      -&gt; e
+      &lt;- e, ee
+      -&gt; s
+      &lt;- se</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>XK:
+  &lt;- s
+  ...
+  -&gt; e, es
+  &lt;- e, ee
+  -&gt; s, se</code></pre></td>
+<td><pre><code>    X1K:
+      &lt;- s
+      ...
+      -&gt; e, es
+      &lt;- e, ee
+      -&gt; s
+      &lt;- se
+
+    XK1:
+      &lt;- s
+      ...
+      -&gt; e
+      &lt;- e, ee, es
+      -&gt; s, se
+
+    X1K1:
+      &lt;- s
+      ...
+      -&gt; e
+      &lt;- e, ee, es
+      -&gt; s
+      &lt;- se</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>XX:
+  -&gt; e
+  &lt;- e, ee, s, es
+  -&gt; s, se</code></pre></td>
+<td><pre><code>    X1X:
+      -&gt; e
+      &lt;- e, ee, s, es
+      -&gt; s
+      &lt;- se
+
+    XX1:
+      -&gt; e
+      &lt;- e, ee, s
+      -&gt; es, s, se
+
+    X1X1:
+      -&gt; e
+      &lt;- e, ee, s
+      -&gt; es, s
+      &lt;- se</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KN:
+  -&gt; s
+  ...
+  -&gt; e
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>    K1N:
+      -&gt; s
+      ...
+      -&gt; e
+      &lt;- e, ee
+      -&gt; se</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KK:
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; e, es, ss
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>    K1K:
+      -&gt; s
+      &lt;- s
+      ...
+      -&gt; e, es
+      &lt;- e, ee
+      -&gt; se
+
+    KK1:
+      -&gt; s
+      &lt;- s
+      ...
+      -&gt; e
+      &lt;- e, ee, se, es
+
+    K1K1:
+      -&gt; s
+      &lt;- s
+      ...
+      -&gt; e
+      &lt;- e, ee, es
+      -&gt; se</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KX:
+  -&gt; s
+  ...
+  -&gt; e
+  &lt;- e, ee, se, s, es</code></pre></td>
+<td><pre><code>    K1X:
+      -&gt; s
+      ...
+      -&gt; e
+      &lt;- e, ee, s, es
+      -&gt; se
+
+    KX1:
+      -&gt; s
+      ...
+      -&gt; e
+      &lt;- e, ee, se, s
+      -&gt; es
+
+    K1X1:
+      -&gt; s
+      ...
+      -&gt; e
+      &lt;- e, ee, s
+      -&gt; se, es</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IN:
+  -&gt; e, s
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>    I1N:
+      -&gt; e, s
+      &lt;- e, ee
+      -&gt; se</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IK:
+  &lt;- s
+  ...
+  -&gt; e, es, s, ss
+  &lt;- e, ee, se</code></pre></td>
+<td><pre><code>    I1K:
+      &lt;- s
+      ...
+      -&gt; e, es, s
+      &lt;- e, ee
+      -&gt; se
+
+    IK1:
+      &lt;- s
+      ...
+      -&gt; e, s
+      &lt;- e, ee, se, es
+
+    I1K1:
+      &lt;- s
+      ...
+      -&gt; e, s
+      &lt;- e, ee, es
+      -&gt; se</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IX:
+  -&gt; e, s
+  &lt;- e, ee, se, s, es</code></pre></td>
+<td><pre><code>    I1X:
+      -&gt; e, s
+      &lt;- e, ee, s, es
+      -&gt; se
+
+    IX1:
+      -&gt; e, s
+      &lt;- e, ee, se, s
+      -&gt; es
+
+    I1X1:
+      -&gt; e, s
+      &lt;- e, ee, s
+      -&gt; se, es</code></pre></td>
+</tr>
+</tbody>
+</table>
+<h2 id="security-properties-for-deferred-patterns">18.2. Security
+properties for deferred patterns</h2>
+<p>The following table lists the the security properties for the PQNoise
+handshake and transport payloads for all the deferred patterns in the
+previous section. The security properties are labelled using the
+notation from <a href="#payload-security-properties">Section
+7.7</a>.</p>
+<table style="width:88%;">
+<colgroup>
+<col style="width: 87%" />
+</colgroup>
+<tbody>
+<tr>
+<td><pre><code>                         Source         Destination</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>NK1
+  &lt;- s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, es              2                1
+  -&gt;                        0                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>NX1
+  -&gt; e                      0                0
+  &lt;- e, ee, s               0                1
+  -&gt; es                     0                3
+  -&gt;                        2                1
+  &lt;-                        0                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>X1N
+  -&gt; e                      0                0
+  &lt;- e, ee                  0                1
+  -&gt; s                      0                1
+  &lt;- se                     0                3
+  -&gt;                        2                1</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>X1K
+  &lt;- s
+  ...
+  -&gt; e, es                  0                2
+  &lt;- e, ee                  2                1
+  -&gt; s                      0                5
+  &lt;- se                     2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>XK1
+  &lt;- s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, es              2                1
+  -&gt; s, se                  2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>X1K1
+  &lt;- s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, es              2                1
+  -&gt; s                      0                5
+  &lt;- se                     2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>X1X
+  -&gt; e                      0                0
+  &lt;- e, ee, s, es           2                1
+  -&gt; s                      0                5
+  &lt;- se                     2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>XX1
+  -&gt; e                      0                0
+  &lt;- e, ee, s               0                1
+  -&gt; es, s, se              2                3
+  &lt;-                        2                5
+  -&gt;                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>X1X1
+  -&gt; e                      0                0
+  &lt;- e, ee, s               0                1
+  -&gt; es, s                  0                3
+  &lt;- se                     2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>K1N
+  -&gt; s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee                  0                1
+  -&gt; se                     2                1
+  &lt;-                        0                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>K1K
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; e, es                  0                2
+  &lt;- e, ee, se              2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KK1
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, se, es          2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>K1K1
+  -&gt; s
+  &lt;- s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, es              2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>K1X
+  -&gt; s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, s, es           2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>KX1
+  -&gt; s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, se, s           0                3
+  -&gt; es                     2                3
+  &lt;-                        2                5
+  -&gt;                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>K1X1
+  -&gt; s
+  ...
+  -&gt; e                      0                0
+  &lt;- e, ee, s               0                1
+  -&gt; se, es                 2                3
+  &lt;-                        2                5
+  -&gt;                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>I1N
+  -&gt; e, s                   0                0
+  &lt;- e, ee                  0                1
+  -&gt; se                     2                1
+  &lt;-                        0                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>I1K
+  &lt;- s
+  ...
+  -&gt; e, es, s               0                2
+  &lt;- e, ee                  2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IK1
+  &lt;- s
+  ...
+  -&gt; e, s                   0                0
+  &lt;- e, ee, se, es          2                3
+  -&gt;                        2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>I1K1
+  &lt;- s
+  ...
+  -&gt; e, s                   0                0
+  &lt;- e, ee, es              2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>I1X
+  -&gt; e, s                   0                0
+  &lt;- e, ee, s, es           2                1
+  -&gt; se                     2                5
+  &lt;-                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>IX1
+  -&gt; e, s                   0                0
+  &lt;- e, ee, se, s           0                3
+  -&gt; es                     2                3
+  &lt;-                        2                5
+  -&gt;                        2                5</code></pre></td>
+</tr>
+<tr>
+<td><pre><code>I1X1
+  -&gt; e, s                   0                0
+  &lt;- e, ee, s               0                1
+  -&gt; se, es                 2                3
+  &lt;-                        2                5
+  -&gt;                        2                5</code></pre></td>
+</tr>
+</tbody>
+</table>
+<h2 id="pattern-derivation-rules">18.3. Pattern derivation rules</h2>
+<p>The following rules were used to derive the one-way, fundamental, and
+deferred handshake patterns.</p>
+<p>First, populate the pre-message contents as defined by the pattern
+name.</p>
+<p>Next populate the initiator’s first message by applying the first
+rule from the below table which matches. Then delete the matching rule
+and repeat this process until no more rules can be applied. If this is a
+one-way pattern, it is now complete.</p>
+<p>Otherwise, populate the responder’s first message in the same way.
+Once no more responder rules can be applied, then switch to the
+initiator’s next message and repeat this process, switching messages
+until no more rules can be applied by either party.</p>
+<p><strong>Initiator rules:</strong></p>
+<ol type="1">
+<li>Send <code>"e"</code>.</li>
+<li>Perform <code>"ee"</code> if <code>"e"</code> has been sent, and
+received.</li>
+<li>Perform <code>"se"</code> if <code>"s"</code> has been sent, and
+<code>"e"</code> received. If initiator authentication is deferred, skip
+this rule for the first message in which it applies, then mark the
+initiator authentication as non-deferred.</li>
+<li>Perform <code>"es"</code> if <code>"e"</code> has been sent, and
+<code>"s"</code> received. If responder authentication is deferred, skip
+this rule for the first message in which it applies, then mark the
+responder authentication as non-deferred.</li>
+<li>Perform <code>"ss"</code> if <code>"s"</code> has been sent, and
+received, and <code>"es"</code> has been performed, and this is the
+first message, and initiator authentication is not deferred.</li>
+<li>Send <code>"s"</code> if this is the first message and initiator is
+“I” or one-way “X”.</li>
+<li>Send <code>"s"</code> if this is not the first message and initiator
+is “X”.</li>
+</ol>
+<p><strong>Responder rules:</strong></p>
+<ol type="1">
+<li>Send <code>"e"</code>.</li>
+<li>Perform <code>"ee"</code> if <code>"e"</code> has been sent, and
+received.</li>
+<li>Perform <code>"se"</code> if <code>"e"</code> has been sent, and
+<code>"s"</code> received. If initiator authentication is deferred, skip
+this rule for the first message in which it applies, then mark the
+initiator authentication as non-deferred.</li>
+<li>Perform <code>"es"</code> if <code>"s"</code> has been sent, and
+<code>"e"</code> received. If responder authentication is deferred, skip
+this rule for the first message in which it applies, then mark the
+responder authentication as non-deferred.</li>
+<li>Send <code>"s"</code> if responder is “X”.</li>
+</ol>
+<h2 id="change-log">18.4. Change log</h2>
+<p><strong>Revision 34:</strong></p>
+<ul>
+<li><p>Added official/unstable marking; the unstable only refers to the
+new deferred patterns, the rest of this document is considered
+stable.</p></li>
+<li><p>Clarified DH() definition so that the identity element is an
+invalid value (not a generator), thus may be rejected.</p></li>
+<li><p>Clarified ciphertext-indistinguishability requirement for AEAD
+schemes and added a rationale.</p></li>
+<li><p>Clarified the order of hashing pre-message public keys.</p></li>
+<li><p>Rewrote handshake patterns explanation for clarity.</p></li>
+<li><p>Added new validity rule to disallow repeating the same DH
+operation.</p></li>
+<li><p>Clarified the complex validity rule regarding ephemeral keys and
+key re-use.</p></li>
+<li><p>Removed parenthesized list of keys from pattern notation, as it
+was redundant.</p></li>
+<li><p>Added deferred patterns.</p></li>
+<li><p>Renamed “Authentication” and “Confidentiality” security
+properties to “Source” and “Destination” to avoid confusion.</p></li>
+<li><p><strong>[SECURITY]</strong> Added a new identity-hiding property,
+and changed identity-hiding property 3 to discuss an identity
+equality-check attack.</p></li>
+<li><p>Replaced “fallback patterns” concept with Bob-initiated pattern
+notation.</p></li>
+<li><p>Rewrote section on compound protocols and pipes for clarity,
+including clearer distinction between “switch protocol” and “fallback
+patterns”.</p></li>
+<li><p>De-emphasized “type byte” suggestion, and added a more general
+discussion of negotiation data.</p></li>
+<li><p><strong>[SECURITY]</strong> Added security considerations
+regarding static key reuse and PSK reuse.</p></li>
+<li><p>Added pattern derivation rules to Appendix.</p></li>
+</ul>
+<h1 class="unnumbered" id="references">19. References</h1>
+<div id="refs" class="references csl-bib-body" data-entry-spacing="0"
+role="list">
+<div id="ref-Rogaway:2002" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[1] </div><div class="csl-right-inline">P.
+Rogaway, <span>“<span class="nocase">Authenticated-encryption with
+Associated-data</span>,”</span> in <span class="nocase">Proceedings of
+the 9th <span>ACM</span> Conference on Computer and Communications
+Security</span>, 2002. <a
+href="http://web.cs.ucdavis.edu/~rogaway/papers/ad.pdf">http://web.cs.ucdavis.edu/~rogaway/papers/ad.pdf</a></div>
+</div>
+<div id="ref-rfc2104" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[2] </div><div class="csl-right-inline">H.
+Krawczyk, M. Bellare, and R. Canetti, <span>“<span class="nocase">HMAC:
+Keyed-Hashing for Message Authentication</span>.”</span> Internet
+Engineering Task Force; RFC 2104 (Informational); IETF, Feb-1997. <a
+href="http://www.ietf.org/rfc/rfc2104.txt">http://www.ietf.org/rfc/rfc2104.txt</a></div>
+</div>
+<div id="ref-rfc5869" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[3] </div><div class="csl-right-inline">H.
+Krawczyk and P. Eronen, <span>“<span class="nocase">HMAC-based
+Extract-and-Expand Key Derivation Function (HKDF)</span>.”</span>
+Internet Engineering Task Force; RFC 5869 (Informational); IETF,
+May-2010. <a
+href="http://www.ietf.org/rfc/rfc5869.txt">http://www.ietf.org/rfc/rfc5869.txt</a></div>
+</div>
+<div id="ref-blinker" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[4] </div><div
+class="csl-right-inline">Markku-Juhani O. Saarinen, <span>“<span
+class="nocase">Beyond Modes: Building a Secure Record Protocol from a
+Cryptographic Sponge Permutation</span>.”</span> Cryptology ePrint
+Archive, Report 2013/772, 2013. <a
+href="http://eprint.iacr.org/2013/772">http://eprint.iacr.org/2013/772</a></div>
+</div>
+<div id="ref-rfc7748" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[5] </div><div class="csl-right-inline">A.
+Langley, M. Hamburg, and S. Turner, <span>“<span class="nocase">Elliptic
+Curves for Security</span>.”</span> Internet Engineering Task Force; RFC
+7748 (Informational); IETF, Jan-2016. <a
+href="http://www.ietf.org/rfc/rfc7748.txt">http://www.ietf.org/rfc/rfc7748.txt</a></div>
+</div>
+<div id="ref-rfc7539" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[6] </div><div class="csl-right-inline">Y.
+Nir and A. Langley, <span>“<span class="nocase">ChaCha20 and Poly1305
+for IETF Protocols</span>.”</span> Internet Engineering Task Force; RFC
+7539 (Informational); IETF, May-2015. <a
+href="http://www.ietf.org/rfc/rfc7539.txt">http://www.ietf.org/rfc/rfc7539.txt</a></div>
+</div>
+<div id="ref-nistgcm" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[7] </div><div class="csl-right-inline">M.
+J. Dworkin, <span>“<span class="nocase">SP 800-38D. Recommendation for
+Block Cipher Modes of Operation: Galois/Counter Mode (GCM) and
+GMAC</span>,”</span> National Institute of Standards &amp; Technology,
+Gaithersburg, MD, United States, 2007. <a
+href="http://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf">http://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf</a></div>
+</div>
+<div id="ref-nistsha2" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[8] </div><div
+class="csl-right-inline">NIST, <span>“<span>FIPS 180-4. Secure Hash
+Standard (SHS)</span>,”</span> National Institute of Standards &amp;
+Technology, Gaithersburg, MD, United States, 2012. <a
+href="http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf">http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf</a></div>
+</div>
+<div id="ref-rfc7693" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[9] </div><div
+class="csl-right-inline">M.-J. Saarinen and J.-P. Aumasson, <span>“<span
+class="nocase">The BLAKE2 Cryptographic Hash and Message Authentication
+Code (MAC)</span>.”</span> Internet Engineering Task Force; RFC 7693
+(Informational); IETF, Nov-2015. <a
+href="http://www.ietf.org/rfc/rfc7693.txt">http://www.ietf.org/rfc/rfc7693.txt</a></div>
+</div>
+<div id="ref-elligator" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[10] </div><div class="csl-right-inline">D.
+J. Bernstein, M. Hamburg, A. Krasnova, and T. Lange, <span>“<span
+class="nocase">Elligator: Elliptic-curve points indistinguishable from
+uniform random strings</span>.”</span> Cryptology ePrint Archive, Report
+2013/325, 2013. <a
+href="http://eprint.iacr.org/2013/325">http://eprint.iacr.org/2013/325</a></div>
+</div>
+<div id="ref-hkdfpaper" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[11] </div><div class="csl-right-inline">H.
+Krawczyk, <span>“"Cryptographic extraction and key derivation: The HKDF
+scheme".”</span> Cryptology ePrint Archive, Report 2010/264, 2010. <a
+href="http://eprint.iacr.org/2010/264">http://eprint.iacr.org/2010/264</a></div>
+</div>
+<div id="ref-nacl" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[12] </div><div class="csl-right-inline">D.
+J. Bernstein, T. Lange, and P. Schwabe, <span>“<span
+class="nocase">NaCl: Networking and Cryptography Library</span>.”</span>
+<a href="https://nacl.cr.yp.to/">https://nacl.cr.yp.to/</a></div>
+</div>
+<div id="ref-curvecp" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[13] </div><div class="csl-right-inline">D.
+J. Bernstein, <span>“<span class="nocase">CurveCP: Usable security for
+the Internet</span>.”</span> <a
+href="https://curvecp.org">https://curvecp.org</a></div>
+</div>
+<div id="ref-sigma" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[14] </div><div class="csl-right-inline">H.
+Krawczyk, <span>“<span class="nocase">SIGMA: The
+<span>‘SIGn-and-MAc’</span> Approach to Authenticated Diffie-Hellman and
+Its Use in the IKE Protocols</span>,”</span> in <span
+class="nocase">Advances in Cryptology - CRYPTO 2003</span>, 2003. <a
+href="http://webee.technion.ac.il/~hugo/sigma.html">http://webee.technion.ac.il/~hugo/sigma.html</a></div>
+</div>
+<div id="ref-homqv" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[15] </div><div class="csl-right-inline">S.
+Halevi and H. Krawczyk, <span>“<span class="nocase">One-Pass HMQV and
+Asymmetric Key-Wrapping</span>.”</span> Cryptology ePrint Archive,
+Report 2010/638, 2010. <a
+href="http://eprint.iacr.org/2010/638">http://eprint.iacr.org/2010/638</a></div>
+</div>
+<div id="ref-ntor" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[16] </div><div class="csl-right-inline">I.
+Goldberg, D. Stebila, and B. Ustaoglu, <span>“<span
+class="nocase">Anonymity and One-way Authentication in Key Exchange
+Protocols</span>,”</span> Design, Codes, and Cryptography, vol. 67, no.
+2, May 2013. <a
+href="http://cacr.uwaterloo.ca/techreports/2011/cacr2011-11.pdf">http://cacr.uwaterloo.ca/techreports/2011/cacr2011-11.pdf</a></div>
+</div>
+<div id="ref-otr" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[17] </div><div class="csl-right-inline">M.
+Di Raimondo, R. Gennaro, and H. Krawczyk, <span>“<span
+class="nocase">Secure Off-the-record Messaging</span>,”</span> in <span
+class="nocase">Proceedings of the 2005 ACM Workshop on Privacy in the
+Electronic Society</span>, 2005. <a
+href="http://www.dmi.unict.it/diraimondo/web/wp-content/uploads/papers/otr.pdf">http://www.dmi.unict.it/diraimondo/web/wp-content/uploads/papers/otr.pdf</a></div>
+</div>
+<div id="ref-kudla2005" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[18] </div><div class="csl-right-inline">C.
+Kudla and K. G. Paterson, <span>“<span class="nocase">Modular Security
+Proofs for Key Agreement Protocols</span>,”</span> in <span
+class="nocase">Advances in Cryptology - ASIACRYPT 2005: 11th
+International Conference on the Theory and Application of Cryptology and
+Information Security</span>, 2005. <a
+href="http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf">http://www.isg.rhul.ac.uk/~kp/ModularProofs.pdf</a></div>
+</div>
+<div id="ref-blakewilson1997" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[19] </div><div class="csl-right-inline">S.
+Blake-Wilson, D. Johnson, and A. Menezes, <span>“Key agreement protocols
+and their security analysis,”</span> in <span class="nocase">Crytography
+and Coding: 6th IMA International Conference Cirencester, UK, December
+17–19, 1997 Proceedings</span>, 1997. <a
+href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387">http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.25.387</a></div>
+</div>
+<div id="ref-moderncryptostrobe" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[20] </div><div class="csl-right-inline">M.
+Hamburg, <span>“<span class="nocase">Key Exchange and DuplexWrap-like
+protocols</span>.”</span> Noise@moderncrypto.org Mailing List, 2015. <a
+href="https://moderncrypto.org/mail-archive/noise/2015/000098.html">https://moderncrypto.org/mail-archive/noise/2015/000098.html</a></div>
+</div>
+<div id="ref-strobe" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[21] </div><div
+class="csl-right-inline">Mike Hamburg, <span>“<span class="nocase">The
+STROBE protocol framework</span>.”</span> Cryptology ePrint Archive,
+Report 2017/003, 2017. <a
+href="http://eprint.iacr.org/2017/003">http://eprint.iacr.org/2017/003</a></div>
+</div>
+<div id="ref-doubleratchet" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[22] </div><div class="csl-right-inline">T.
+Perrin and M. Marlinspike, <span>“<span>The Double Ratchet
+Algorithm</span>,”</span> 2016. <a
+href="https://whispersystems.org/docs/specifications/doubleratchet/">https://whispersystems.org/docs/specifications/doubleratchet/</a></div>
+</div>
+</div>
+</body>
+</html>

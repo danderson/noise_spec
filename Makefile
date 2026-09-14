@@ -1,6 +1,6 @@
 
 # Edit SPECNAME for the name your spec
-SPECNAME := noise
+SPECNAME := pqnoise
 
 # Ensure SPECTOOLS points at your spectools
 PANDOC := $(SPECTOOLS)/pandoc
@@ -19,7 +19,7 @@ output/$(SPECNAME).html: $(SPECNAME).md $(PANDOC)/template_pandoc.html $(PANDOC)
 		--template $(PANDOC)/template_pandoc.html \
 		--metadata=pdfn:$(SPECNAME).pdf \
 		--css=spec_markdown.css \
-		--filter pandoc-citeproc \
+		--citeproc \
 		--bibliography=$(CITEPROC)/general.bib \
 		--bibliography=my.bib \
 		--csl=$(CITEPROC)/ieee-with-url.csl \
@@ -30,7 +30,7 @@ output/$(SPECNAME).pdf: $(SPECNAME).md $(PANDOC)/template_pandoc.latex $(CITEPRO
 	pandoc $(SPECNAME).md --standalone --toc \
 	        --from markdown\
 		--template $(PANDOC)/template_pandoc.latex \
-		--filter pandoc-citeproc \
+		--citeproc \
 		--bibliography=$(CITEPROC)/general.bib \
 		--bibliography=my.bib \
 		--csl=$(CITEPROC)/ieee-with-url.csl \
