@@ -14,7 +14,7 @@ PQNoise is a framework for crypto protocols based on post-quantum KEMs.
 This is my attempt to write an implementer-focused specification for [PQNoise][pqnoise],
 in the same style as the excellent [Noise Protocol Framework specification][noise].
 
-In their paper, the PQNoise authors rightly focuses on justifying its modifications to
+In their paper, the PQNoise authors rightly focus on justifying its modifications to
 classical Noise, and on proving the properties of the new protocol they defined. This
 makes it an excellent reference for cryptographers, but the information that programmers
 need to implement PQNoise is diffused throughout as a result. The paper also assumes
