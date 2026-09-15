@@ -10,18 +10,14 @@ link-citations: 'true'
 
 # 1. Introduction
 
-PQPQNoise is a framework for crypto protocols based on KEM ciphertexts. 
-It is a continuation of the classic Noise protocol framework, modified to be resistant
-to quantum computer attacks.
+PQNoise is a framework for crypto protocols based on KEM ciphertexts.  It is an
+evolution of the classic Noise protocol framework designed to be resistant to
+quantum cryptanalysis. 
 
-**TODO**: this is a work in progress draft. It has not been reviewed by anyone for accuracy
-or correctness. If you're looking to implement PQNoise, you should refer to the
-[PQNoise paper](https://eprint.iacr.org/2022/539) and the [Noise specification](https://noiseprotocol.org/noise.html).
-You should assume that this document is dangerously inaccurate at this time.
-
-I'm drafting this spec as a reference for implementors, but did not create Noise or PQNoise.
-Noise is due to Trevor Perrin and a [cast of dozens more listed in the Noise Spec's acknowledgements](https://noiseprotocol.org/noise.html#acknowledgements).
-PQNoise is due to [Yawning Angel, Benjamin Dowling, Andreas Hülsing, Peter Schwabe, and Fiona Johanna Weber](https://eprint.iacr.org/2022/539). 
+**DANGER**: this is a work in progress draft. It has not been reviewed by anyone
+for accuracy or correctness. **If you're looking to implement PQNoise, do not use
+this document**. Refer instead to the authoritative PQNoise paper [@pqnoise] and
+the Noise Protocol Framework specification [@noise].
 
 # 2. Overview
 
@@ -29,20 +25,19 @@ PQNoise is due to [Yawning Angel, Benjamin Dowling, Andreas Hülsing, Peter Schw
 
 A PQNoise protocol begins with two parties exchanging **handshake messages**.
 During this **handshake phase** the parties exchange KEM keys and ciphertexts,
-hashing the KEM secrets into a shared secret key.
-After the handshake phase each party can use this shared key to send encrypted
-**transport messages**.
+hashing the KEM secrets into a shared secret key.  After the handshake phase
+each party can use this shared key to send encrypted **transport messages**.
 
 The PQNoise framework supports handshakes where each party has a long-term
-**static key pair** and/or an **ephemeral key pair**.  A PQNoise handshake is
-described by a simple language.  This language consists of **tokens** which are
-arranged into **message patterns**.  Message patterns are arranged into
-**handshake patterns**.
+**static key pair**, and share one **ephemeral key pair** per handshake.
+A PQNoise handshake is described by a simple language.  This language consists
+of **tokens** which are arranged into **message patterns**.  Message patterns
+are arranged into **handshake patterns**.
 
 A **message pattern** is a sequence of tokens that specifies the KEM public keys
-that comprise a handshake message, and the KEM operations that are performed
-when sending or receiving that message.  A **handshake pattern** specifies the
-sequential exchange of messages that comprise a handshake.
+and ciphertexts that comprise a handshake message, and the KEM operations that
+are performed when sending or receiving that message.  A **handshake pattern**
+specifies the sequential exchange of messages that comprise a handshake.
 
 A handshake pattern can be instantiated by **KEM functions**, **cipher functions**,
 and **hash functions** to give a concrete **PQNoise protocol**.
@@ -55,11 +50,9 @@ sequentially processing the tokens from a message pattern.
 
 Each party maintains the following variables:
 
- * **`s, e`**: The local party's static and ephemeral key pairs (which may be
-   empty).
+ * **`s`, `e`**: The local party's static and ephemeral key pairs (which may be empty).
 
- * **`rs, re`**: The remote party's static and ephemeral public keys (which may
-   be empty).
+ * **`rs`, `re`**: The remote party's static and ephemeral public keys (which may be empty).
 
  * **`h`**: A **handshake hash** value that hashes all the handshake data that's
    been sent and received.
@@ -73,27 +66,26 @@ Each party maintains the following variables:
    a new `k` is also calculated.  The key `k` and nonce `n` are used to encrypt
    static public keys and handshake payloads.  Encryption with `k` uses some
    **AEAD** cipher mode (in the sense of Rogaway [@Rogaway:2002]) 
-   and uses the current `h` value as **associated data**
-   which is covered by the AEAD authentication.  Encryption of static public
-   keys and payloads provides some confidentiality and key confirmation during
-   the handshake phase.
+   and uses the current `h` value as **associated data** which is covered by
+   the AEAD authentication.  Encryption of static public keys and payloads
+   provides some confidentiality and key confirmation during the handshake phase.
 
-A handshake message consists of some KEM public keys or ciphertext, followed by
+A handshake message consists of some KEM public keys or ciphertexts, followed by
 a **payload**.  The payload may contain certificates or other data chosen by the
 application.  To send a handshake message, the sender specifies the payload and
 sequentially processes each token from a message pattern.  The possible tokens are:
 
  * **`"e"`**: The sender generates a new ephemeral key pair and stores it in
-   the `e` variable, writes the ephemeral public key as cleartext into the
-   message buffer, and hashes the public key along with the old `h` to derive a
-   new `h`.
+   the `e` variable. It then writes the generated public key from into the message
+   buffer, encrypting it if `k` is non-empty, and hashes the public key along with
+   the old `h` to derive a new `h`.
 
  * **`"s"`**: The sender writes its static public key from the `s` variable
    into the message buffer, encrypting it if `k` is non-empty, and hashes the
    output along with the old `h` to derive a new `h`.
 
  * **`"ekem", "skem"`**: a KEM encapsulation or decapsulation is performed using
-   the message sender's keypair (whether static or ephemeral is determined by the
+   the message recipient's key (whether static or ephemeral is determined by the
    first letter).  The result is hashed along with the old `ck` to derive a new
    `ck` and `k`, and `n` is set to zero.
 
@@ -101,7 +93,7 @@ After processing the final token in a handshake message, the sender then writes
 the payload into the message buffer, encrypting it if `k` is non-empty, and
 hashes the output along with the old `h` to derive a new `h`.
 
-As a simple example, an unauthenticated DH handshake is described by the
+As a simple example, an unauthenticated handshake is described by the
 handshake pattern:
 
       -> e
@@ -109,7 +101,7 @@ handshake pattern:
 
 The **initiator** sends the first message, which is simply an ephemeral public key.
 The **responder** sends back a KEM ciphertext addressed to that key. Both parties hash
-the secret produced by the KEM into a shared secret key.
+the value produced by the KEM into a shared secret key.
 
 Note that a cleartext payload is sent in the first message, after the cleartext
 ephemeral public key, and an encrypted payload is sent in the response message,
@@ -124,8 +116,8 @@ authenticate itself via a slightly different pattern:
 
 In this case, the final `ck` and `k` values are a hash of both KEM secrets.
 Since the `skem` token indicates a KEM operation involving the responder's static
-key, successful decryption of messages that following the handshake authenticate
-the responder to the initiator.
+key, successful decryption of messages following the handshake authenticate the
+responder to the initiator.
 
 Note that the second and third messages' payloads may contain a zero-length plaintext,
 but the payload ciphertext will still contain authentication data (such as an
@@ -133,7 +125,7 @@ authentication tag or "synthetic IV"), since encryption is with an AEAD mode.
 The second message's payload can also be used to deliver certificates for the
 responder's static public key.
 
-The initiator can send *its* static public key (under encryption), and
+The initiator can send *its* static public key (also under encryption), and
 authenticate itself, using a handshake pattern with one additional message:
 
       -> e
@@ -218,7 +210,7 @@ and KEM ciphertexts are 1200 bytes, the message sizes will be:
 A PQNoise protocol is instantiated with a concrete set of **KEM functions**,
 **cipher functions**, and **hash functions**.  The signature for these
 functions is defined below.  Some concrete functions are defined in [Section
-12](#dh-functions-cipher-functions-and-hash-functions).
+12](#kem-functions-cipher-functions-and-hash-functions).
 
 The following notation will be used in algorithm pseudocode:
 
@@ -227,7 +219,7 @@ The following notation will be used in algorithm pseudocode:
 
 ## 4.1. DH functions
 
-PQNoise depends on the following **KEM functions** (and an associated constant):
+PQNoise depends on the following **KEM functions** (and associated constants):
 
  * **`GENERATE_KEYPAIR()`**: Generates a new KEM key pair.  A KEM key pair
    consists of `public_key` and `private_key` elements.  A `public_key`
@@ -238,10 +230,14 @@ PQNoise depends on the following **KEM functions** (and an associated constant):
  * **`ENCAPS(public_key)`**: Performs a KEM encapsulation addressed to `public_key`,
    and returns a shared secret (a byte sequence of length `KEM_SECRET_LEN`) and its
    corresponding KEM ciphertext (a byte sequence of length `KEM_CIPHERTEXT_LEN`).
+   May signal an error if `public_key` is not a valid KEM public key.
 
  * **`DECAPS(private_key, ciphertext)`**: Performs a KEM decapsulation of `ciphertext`
    using `private_key`, and returns the same shared secret as the `ENCAPS` operation that
    produced the ciphertext (a byte sequence of `KEM_SECRET_LEN`).
+   May signal an error if `private_key` is not a valid KEM private key.
+   Invalid ciphertexts may be rejected explicitly (by signaling an error) or implicitly
+   (by returning a random secret unrelated to the one produced by `ENCAPS`).
 
  * **`KEM_KEY_LEN`** = A constant specifying the size in bytes of KEM public keys.
 
@@ -253,11 +249,10 @@ PQNoise depends on the following **KEM functions** (and an associated constant):
    new secret being large enough to be impossible to brute-force?)
 
 The KEM must be **correct** (for honestly generated keys and ciphertexts, `DECAPS` recovers
-the same shared secret as `ENCAPS` with overwhelmingly high probability), **post-quantum
-IND-CCA secure** (indistinguishability under adaptive chosen ciphertext attacks). It may use
-either explicit or implicit rejection of invalid ciphertexts.
+the same shared secret as `ENCAPS` with overwhelmingly high probability) and **post-quantum
+IND-CCA secure** (indistinguishability under adaptive chosen ciphertext attacks).
 
-**TODO**: reference NIST SP 800-227, note that ML-KEM meets the above requirements?
+This definition of KEM functions parallels that of [@fips-sp-800-227].
 
 ## 4.2. Cipher functions
 
@@ -753,10 +748,14 @@ Patterns failing the first check are obviously nonsense.
 The second and third checks outlaw redundant transmission of values, and
 redundant computation, to simplify implementation and testing.
 
-TODO: could also mandate that you must send ekem/skem as soon as you learn the relevant pubkey. Could also include the
+**TODO**: could also mandate that you must send ekem/skem as soon as you learn the relevant pubkey. Could also include the
 rule from PQNoise paper that ekem precedes skem precedes anything else, which maximizes security properties for
 subsequent message fields. Neither is required for a pattern to be valid in the security sense, but eliminate a
 number of patterns that are strictly weaker choices than the pattern with those rules applied.
+
+**TODO**: per security considerations, may need to mandate processing **ekem** prior to sending any encrypted data.
+I think this rule is more complex in PQNoise because `skem` includes per-handshake randomness from a single party,
+so maybe an honest party must process `ekem` _or_ send `skem` to the recipient prior to encryption?
 
 Users are recommended to only use the handshake patterns listed below, or other
 patterns that have been vetted by experts to satisfy the above checks.
@@ -1346,8 +1345,6 @@ this document.
 
 # 10. Compound protocols
 
-## 10.1. Rationale for compound protocols
-
 So far we've assumed Alice and Bob wish to execute a single PQNoise protocol
 chosen by the initiator (Alice).  However, there are a number of reasons why
 Bob might wish to switch to a different PQNoise protocol after receiving 
@@ -1381,14 +1378,15 @@ handshake payload.
 
 PQNoise doesn't directly support this.  Instead, this could be simulated by
 always executing `XX`.  The initiator can simulate the `NX` case by
-sending a **dummy static public key** if authentication is not requested.  The
-value of the dummy public key doesn't matter.
+sending an ephemeral key as its "static" public key if authentication is not
+requested.  The responder accepts any key sent by the initiator, and responds
+with `"skem"` as usual.
 
 This technique is simple, since it allows use of a single handshake pattern.
 It also doesn't reveal which option was chosen from message sizes or
 computation time.  It could be extended to allow an `XX` pattern to
 support any permutation of authentications (initiator only, responder only,
-both, or none).  
+both, or none).
 
 Similarly, **dummy PSKs** (e.g. a PSK of all zeros) would allow a protocol to
 optionally support PSKs.
@@ -1404,7 +1402,7 @@ handshake is complete and expose the returned value to the application as a
 
 Parties can then sign the handshake hash, or hash it along with their password,
 to get an authentication token which has a "channel binding" property: the
-token can't be used by the receiving party with a different sesssion.
+token can't be used by the receiving party with a different session.
 
 ## 11.3. Rekey
 
@@ -1416,14 +1414,14 @@ discussion on `AESGCM` data volumes in [Section 14](#security-considerations)).
 
 To enable this, PQNoise supports a `Rekey()` function which may be called on a `CipherState`.
 
-It is up to to the application if and when to perform rekey.  For example: 
+It is up to the application if and when to perform rekey.  For example: 
 
  * Applications might perform **continuous rekey**, where they rekey the relevant
    cipherstate after every transport message sent or received.  This is simple and
    gives good protection to older ciphertexts, but might be difficult for implementations 
    where changing keys is expensive.
 
- * Applications might rekey a cipherstate automatically after it has has been used to
+ * Applications might rekey a cipherstate automatically after it has been used to
    send or receive some number of messages.
 
  * Applications might choose to rekey based on arbitrary criteria, in which case they signal
@@ -1454,6 +1452,7 @@ Note that lossy and out-of-order message delivery introduces many other concerns
 are outside the scope of this document.
 
 ## 11.5. Half-duplex protocols
+
 In some application protocols the parties strictly alternate sending messages.
 In this case PQNoise can be used in a **half-duplex** mode [@blinker] where the
 first `CipherState` returned by `Split()` is used for encrypting messages in both
@@ -1466,79 +1465,61 @@ This feature must be used with extreme caution.  In particular, it would be a
 catastrophic security failure if the protocol is not strictly alternating and both
 parties encrypt different messages using the same `CipherState` and nonce value.
 
+# 12. KEM functions, cipher functions, and hash functions
 
-# 12. DH functions, cipher functions, and hash functions
+## 12.1. The `MLKEM512`, `MLKEM768`, `MLKEM1024` KEM functions
 
-**TODO**: everything beyond this point is just the original Noise specification
-with s/Noise/PQNoise/ in text, I haven't yet reworked it.
+ML-KEM is specified in [@fips203], with three parameter sets offering different security levels.
 
-## 12.1. The `25519` DH functions
-
- * **`GENERATE_KEYPAIR()`**: Returns a new Curve25519 key pair.
- 
- * **`DH(keypair, public_key)`**: Executes the Curve25519 DH function (aka
-   "X25519" in [@rfc7748]).  Invalid public key values will produce an output
-   of all zeros.  
+ * **`GENERATE_KEYPAIR()` / `ENCAPS(public_key)` / `DECAPS(private_key, ciphertext)`**: ML-KEM from [@fips203].
    
-     Alternatively, implementations are allowed to detect inputs that 
-     produce an all-zeros output and signal an error instead.  This behavior is
-     discouraged because it adds complexity and implementation variance, and
-     does not improve security.  This behavior is allowed because it might
-     match the behavior of some software.
+ * Constants for ML-KEM-512:
+   * **`KEM_KEY_LEN`** = 800
+   * **`KEM_CIPHERTEXT_LEN`** = 768
+   * **`KEM_SECRET_LEN`** = 32
 
- * **`DHLEN`** = 32
+ * Constants for ML-KEM-768:
+    * **`KEM_KEY_LEN`** = 1184
+    * **`KEM_CIPHERTEXT_LEN`** = 1088
+    * **`KEM_SECRET_LEN`** = 32
 
-## 12.2. The `448` DH functions
+ * Constants for ML-KEM-1024:
+    * **`KEM_KEY_LEN`** = 1568
+    * **`KEM_CIPHERTEXT_LEN`** = 1568
+    * **`KEM_SECRET_LEN`** = 32
 
- * **`GENERATE_KEYPAIR()`**: Returns a new Curve448 key pair.
- 
- * **`DH(keypair, public_key)`**: Executes the Curve448 DH function (aka "X448"
-   in [@rfc7748]).  Invalid public key values will produce an output of all
-   zeros.  
-
-     Alternatively, implementations are allowed to detect inputs that 
-     produce an all-zeros output and signal an error instead.  This behavior is
-     discouraged because it adds complexity and implementation variance, and
-     does not improve security.  This behavior is allowed because it might
-     match the behavior of some software.
-
- * **`DHLEN`** = 56
-
-## 12.3. The `ChaChaPoly` cipher functions
+## 12.2. The `ChaCha20Poly1305` cipher functions
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**:
    `AEAD_CHACHA20_POLY1305` from [@rfc7539].  The 96-bit nonce is formed by
    encoding 32 bits of zeros followed by little-endian encoding of `n`.
-   (Earlier implementations of ChaCha20 used a 64-bit nonce; with these
-   implementations it's compatible to encode `n` directly into the ChaCha20
-   nonce without the 32-bit zero prefix).
 
-## 12.4. The `AESGCM` cipher functions
+## 12.3. The `AESGCM256` cipher functions
 
  * **`ENCRYPT(k, n, ad, plaintext)` / `DECRYPT(k, n, ad, ciphertext)`**: AES256
    with GCM from [@nistgcm] with a 128-bit tag appended to the
    ciphertext.  The 96-bit nonce is formed by encoding 32 bits of zeros
    followed by big-endian encoding of `n`.
 
-## 12.5. The `SHA256` hash function
+## 12.4. The 'SHA256' hash function
 
- * **`HASH(input)`**: `SHA-256` from [@nistsha2].
- * **`HASHLEN`** = 32
- * **`BLOCKLEN`** = 64
+* **`HASH(input)`**: `SHA-256`  from [@nistsha2].
+* **`HASHLEN`** = 32
+* **`BLOCKLEN`** = 64
 
-## 12.6. The `SHA512` hash function
+## 12.5. The 'SHA512' hash function
 
- * **`HASH(input)`**: `SHA-512`  from [@nistsha2].
- * **`HASHLEN`** = 64
- * **`BLOCKLEN`** = 128
+* **`HASH(input)`**: `SHA-512`  from [@nistsha2].
+* **`HASHLEN`** = 64
+* **`BLOCKLEN`** = 64
 
-## 12.7. The `BLAKE2s` hash function
+## 12.6. The `BLAKE2s` hash function
 
  * **`HASH(input)`**: `BLAKE2s` from [@rfc7693] with digest length 32.
  * **`HASHLEN`** = 32
  * **`BLOCKLEN`** = 64
 
-## 12.8. The `BLAKE2b` hash function
+## 12.7. The `BLAKE2b` hash function
 
  * **`HASH(input)`**: `BLAKE2b` from [@rfc7693] with digest length 64.
  * **`HASHLEN`** = 64
@@ -1550,15 +1531,15 @@ with s/Noise/PQNoise/ in text, I haven't yet reworked it.
 
 An application built on PQNoise must consider several issues:
 
- * **Choosing crypto functions**:  The `25519` DH functions are recommended for
-   typical uses, though the `448` DH functions might offer extra security
-   in case a cryptanalytic attack is developed against elliptic curve
-   cryptography.  The `448` DH functions should be used with a 512-bit hash
-   like `SHA512` or `BLAKE2b`.  The `25519` DH functions may be used with a
-   256-bit hash like `SHA256` or `BLAKE2s`, though a 512-bit hash might offer
-   extra security in case a cryptanalytic attack is developed
-   against the smaller hash functions.  `AESGCM` is hard to implement with
-   high speed and constant time in software.
+ * **Choosing crypto functions**:  The `ML-KEM-768` KEM functions are recommended
+   for typical uses.  The `ML-KEM` KEM functions may be used with a 256-bit hash
+   like `SHA256` or `BLAKE2s`, though a 512-bit hash might offer extra security
+   in case a cryptanalytic attack is developed against the smaller hash functions.
+   `AESGCM256` offers excellent performance when hardware acceleration is available,
+   but is hard to implement with high speed and constant time in software.
+   `ChaCha20Poly1305` is easier to implement securely in software and outperforms
+   software-only AES, but is less efficient where hardware AES acceleration is
+   available.
 
  * **Extensibility**:  Applications are recommended to use an extensible data
    format for the payloads of all messages (e.g. JSON, Protocol Buffers).  This
@@ -1616,15 +1597,15 @@ This section collects various security considerations:
    communication between the parties.
 
  * **Static key reuse**:  A static key pair used with PQNoise should be used with
-   a single hash algorithm.  The key pair should not be used outside of PQNoise,
+   a single hash algorithm.  The key pair should not be used outside PQNoise,
    nor with multiple hash algorithms.  It is acceptable to use the static key
    pair with different PQNoise protocols, provided the same hash algorithm is
-   used in all of them.  (Reusing a PQNoise static key pair outside of PQNoise
+   used in all of them.  (Reusing a PQNoise static key pair outside PQNoise
    would require extremely careful analysis to ensure the uses don't compromise
    each other, and security proofs are preserved).
 
  * **PSK reuse**:  A PSK used with PQNoise should be used with a single hash
-   algorithm.  The PSK should not be used outside of PQNoise, nor with multiple
+   algorithm.  The PSK should not be used outside PQNoise, nor with multiple
    hash algorithms.
 
  * **Ephemeral key reuse**:  Every party in a PQNoise protocol must send a fresh
@@ -1632,8 +1613,7 @@ This section collects various security considerations:
    must never be reused.  Violating these rules is likely to cause catastrophic
    key reuse. This is one rationale behind the patterns in [Section
    7](#handshake-patterns), and the validity rules in [Section
-   7.3](#handshake-pattern-validity).  It's also the reason why one-way
-   handshakes only allow transport messages from the sender, not the recipient.
+   7.3](#handshake-pattern-validity).
 
  * **Misusing public keys as secrets**: It might be tempting to use a pattern
    with a pre-message public key and assume that a successful handshake implies
@@ -1643,15 +1623,20 @@ This section collects various security considerations:
    an invalid ephemeral public key to cause a known DH output of all zeros,
    despite not knowing the responder's static public key. If the parties want
    to authenticate with a shared secret, it should be used as a PSK.
+   **TODO**: how does this change in PQNoise? It's still a bad idea to treat public
+   keys as secrets, but do KEMs have a specific failure mode comparable to DH?
 
- * **Channel binding**:  Depending on the DH functions, it might be possible
+ * **Channel binding**:  Depending on the KEM functions, it might be possible
    for a malicious party to engage in multiple sessions that derive the same
    shared secret key by setting public keys to invalid values that cause
-   predictable DH output (as in the previous bullet).  It might also be
+   predictable KEM output (as in the previous bullet).  It might also be
    possible to set public keys to equivalent values that cause the same DH
    output for different inputs.  This is why a higher-level protocol should use
    the handshake hash (`h`) for a unique channel binding, instead of `ck`, as
-   explained in [Section 11.2](#channel-binding).
+   explained in [Section 11.2](#channel-binding). **TODO**: how does this change with KEMs?
+   even if a KEM implicitly accepts invalid pubkeys when encapsulating, it
+   encapsulates random coins chosen by the honest party, which should break
+   predicting `ck` values.
 
  * **Incrementing nonces**:  Reusing a nonce value for `n` with the same key
    `k` for encryption would be catastrophic.  Implementations must carefully
@@ -1669,7 +1654,7 @@ This section collects various security considerations:
  * **Pre-shared symmetric keys**:  Pre-shared symmetric keys must be secret
    values with 256 bits of entropy.
 
- * **Data volumes**:  The `AESGCM` cipher functions suffer a gradual reduction
+ * **Data volumes**:  The `AESGCM256` cipher functions suffer a gradual reduction
    in security as the volume of data encrypted under a single key increases.
    Due to this, parties should not send more than 2^56^ bytes (roughly 72
    petabytes) encrypted by a single key.  If sending such large volumes of data
@@ -1685,7 +1670,7 @@ This section collects various security considerations:
  * **Implementation fingerprinting**:  If this protocol is used in settings
    with anonymous parties, care should be taken that implementations behave
    identically in all cases.  This may require mandating exact behavior for
-   handling of invalid DH public keys.
+   handling of invalid KEM public keys.
 
 \newpage
 
@@ -1732,11 +1717,11 @@ Ciphertexts are required to be indistinguishable from random because:
   * This makes PQNoise protocols easier to use with random padding (for length-hiding), or
   for censorship-resistant "unfingerprintable" protocols, or with steganography.  However note
   that ephemeral keys are likely to be distinguishable from random unless a technique such
-  as Elligator [@elligator] is used.
+  as Kemeleon [@kemeleon] is used.
 
 Rekey defaults to using encryption with the nonce 2^64^-1 because:
 
-  * With `AESGCM` and `ChaChaPoly` rekey can be computed efficiently (the
+  * With `AESGCM256` and `ChaCha20Poly1305` rekey can be computed efficiently (the
     "encryption" just needs to apply the cipher, and can skip calculation of
     the authentication tag).
 
@@ -1744,25 +1729,27 @@ Rekey doesn't reset `n` to zero because:
 
   * Leaving `n` unchanged is simple.
 
-  * If the cipher has a weakness such that repeated rekeying gives rise to a cycle of keys, then letting `n` advance will avoid catastrophic reuse of the same `k` and `n` values.
+  * If the cipher has a weakness such that repeated rekeying gives rise to a cycle
+    of keys, then letting `n` advance will avoid catastrophic reuse of the same `k` and
+    `n` values.
 
-  * Letting `n` advance puts a bound on the total number of encryptions that can be performed with a set of derived keys.
+  * Letting `n` advance puts a bound on the total number of encryptions that can be performed
+    with a set of derived keys.
 
-The `AESGCM` data volume limit is 2^56^ bytes because:
+The `AESGCM256` data volume limit is 2^56^ bytes because:
 
   * This is 2^52^ AES blocks (each block is 16 bytes).  The limit is based on
    the risk of birthday collisions being used to rule out plaintext guesses.
    The probability an attacker could rule out a random guess on a 2^56^ byte
    plaintext is less than 1 in 1 million (roughly (2^52^ * 2^52^) / 2^128^).
 
-Cipher nonces are big-endian for `AESGCM`, and little-endian for `ChaCha20`, because:
+Cipher nonces are big-endian for `AESGCM256`, and little-endian for `ChaCha20Poly1305`, because:
 
   * ChaCha20 uses a little-endian block counter internally.
 
   * AES-GCM uses a big-endian block counter internally.
 
   * It makes sense to use consistent endianness in the cipher code.
-
 
 ## 15.2. Hash functions and hashing
 
@@ -1780,7 +1767,8 @@ Hash output lengths of both 256 bits and 512 bits are supported because:
   * The 256-bit hashes (SHA-256 and BLAKE2s) require less RAM, and less computation when processing 
     smaller inputs (due to smaller block size), than SHA-512 and BLAKE2b.
 
-  * SHA-256 and BLAKE2s are faster on 32-bit processors than the larger hashes, which use 64-bit operations internally.
+  * SHA-256 and BLAKE2s are faster on 32-bit processors than the larger hashes, which use 64-bit
+    operations internally.
 
 The `MixKey()` design uses HKDF because:
 
@@ -1831,7 +1819,6 @@ The `h` value hashes handshake ciphertext instead of plaintext because:
 
   * This provides stronger guarantees against ciphertext malleability. 
 
-
 ## 15.3. Other
 
 Big-endian length fields are recommended because:
@@ -1841,9 +1828,9 @@ Big-endian length fields are recommended because:
 
   * Some ciphers use big-endian internally (e.g. GCM, SHA2).
 
-  * While it's true that Curve25519, Curve448, and ChaCha20/Poly1305 use 
-    little-endian, these will likely be handled by specialized libraries, so 
-    there's not a strong argument for aligning with them.
+  * While it's true that ML-KEM and ChaCha20Poly1305 use little-endian, these
+    will likely be handled by specialized libraries, so there's not a strong
+    argument for aligning with them.
 
 Session termination is left to the application because:
 
@@ -1857,12 +1844,15 @@ Explicit random nonces (like TLS "Random" fields) are not used because:
 
   * One-time ephemeral public keys make explicit nonces unnecessary.
 
-  * Explicit nonces allow reuse of ephemeral public keys.  However reusing ephemerals (with periodic replacement) is more complicated, requires a secure time source, is less secure in case of ephemeral compromise, and only provides a small optimization, since key generation can be done for a fraction of the cost of a DH operation.
+  * Explicit nonces allow reuse of ephemeral public keys.  However reusing ephemerals
+    (with periodic replacement) is more complicated, requires a secure time source,
+    is less secure in case of ephemeral compromise, and only provides a small optimization,
+    since KEM key generation cost is low.
 
   * Explicit nonces increase message size.
 
-  * Explicit nonces make it easier to "backdoor" crypto implementations, e.g. by modifying the RNG so that key recovery data is leaked through the nonce fields.
-
+  * Explicit nonces make it easier to "backdoor" crypto implementations, e.g. by modifying
+    the RNG so that key recovery data is leaked through the nonce fields.
 
 # 16. IPR
 
@@ -1872,483 +1862,66 @@ The PQNoise specification (this document) is hereby placed in the public domain.
 
 # 17. Acknowledgements
 
-PQNoise is inspired by:
+This document is an attempt to produce an implementor focused specification for PQNoise, in
+the style of the original Noise Protocol Framework specification. Its author was not involved
+in the creation of Noise or PQNoise.
 
-  * The NaCl and CurveCP protocols from Dan Bernstein et al [@nacl; @curvecp].
-  * The SIGMA and HOMQV protocols from Hugo Krawczyk [@sigma; @homqv].
-  * The Ntor protocol from Ian Goldberg et al [@ntor].
-  * The analysis of OTR by Mario Di Raimondo et al [@otr].
-  * The analysis by Caroline Kudla and Kenny Paterson of "Protocol 4" by Simon Blake-Wilson et al [@kudla2005; @blakewilson1997].
-  * Mike Hamburg's proposals for a sponge-based protocol framework, which led to STROBE [@moderncryptostrobe; @strobe].
-  * The KDF chains used in the Double Ratchet Algorithm [@doubleratchet].
+PQNoise [@pqnoise] was created by Yawning Angel, Benjamin Dowling, Andreas Hülsing, Peter Schwabe,
+and Fiona Johanna Weber.
 
-General feedback on the spec and design came from: Moxie Marlinspike, Jason
-Donenfeld, Rhys Weatherley, Mike Hamburg, David Wong, Jake McGinty, Tiffany
-Bennett, Jonathan Rudenberg, Stephen Touset, Tony Arcieri, Alex Wied, Alexey
-Ermishkin, Olaoluwa Osuntokun, Karthik Bhargavan, and Nadim Kobeissi.
-
-Helpful editorial feedback came from: Tom Ritter, Karthik Bhargavan, David
-Wong, Klaus Hartke, Dan Burkert, Jake McGinty, Yin Guanhao, Nazar Mokrynskyi,
-Keziah Elis Biermann, Justin Cormack, Katriel Cohn-Gordon, and Nadim Kobeissi.
-
-Helpful input and feedback on the key derivation design came from: Moxie
-Marlinspike, Hugo Krawczyk, Samuel Neves, Christian Winnerlein, J.P. Aumasson,
-and Jason Donenfeld.
-
-The PSK approach was largely motivated and designed by Jason Donenfeld, based
-on his experience with PSKs in WireGuard.
-
-The deferred patterns resulted from discussions with Justin Cormack.  The pattern
-derivation rules in the Appendix are also from Justin Cormack.
-
-The security properties table for deferred patterns was derived by the 
-PQNoise Explorer tool, from Nadim Kobeissi.
-
-The rekey design benefited from discussions with Rhys Weatherley, Alexey
-Ermishkin, and Olaoluwa Osuntokun.  
-
-The BLAKE2 team (in particular J.P.  Aumasson, Samuel Neves, and Zooko)
-provided helpful discussion on using BLAKE2 with PQNoise.
-
-Jeremy Clark, Thomas Ristenpart, and Joe Bonneau gave feedback on earlier
-versions.
+The Noise Protocol Framework [@noise] specification and design is by Trevor Perrin, with inspiration
+and feedback from dozens more (listed in the Noise specification's acknowledgements). This specification
+used the Noise specification (revision 34) as a starting point.
 
 \newpage
 
 # 18. Appendices
 
-## 18.1. Deferred patterns
+## 18.1. Pattern derivation rules
 
-The following table lists all 23 deferred handshake patterns in the right
-column, with their corresponding fundamental handshake pattern in the left
-column.  See [Section 7](#handshake-patterns) for an explanation of 
-fundamental and deferred patterns.
-
-+---------------------------+--------------------------------+
-|     NK:                   |         NK1:                   |
-|       <- s                |           <- s                 |
-|       ...                 |           ...                  |
-|       -> e, es            |           -> e                 |
-|       <- e, ee            |           <- e, ee, es         |
-|                           |                                |
-+---------------------------+--------------------------------+
-|     NX:                   |         NX1:                   |
-|       -> e                |           -> e                 |
-|       <- e, ee, s, es     |           <- e, ee, s          |
-|                           |           -> es                |
-|                           |                                |
-+---------------------------+--------------------------------+
-|     XN:                   |         X1N:                   |
-|       -> e                |           -> e                 |
-|       <- e, ee            |           <- e, ee             |
-|       -> s, se            |           -> s                 |
-|                           |           <- se                |
-|                           |                                |
-+---------------------------+--------------------------------+
-|     XK:                   |         X1K:                   |
-|       <- s                |           <- s                 |
-|       ...                 |           ...                  |
-|       -> e, es            |           -> e, es             |
-|       <- e, ee            |           <- e, ee             |
-|       -> s, se            |           -> s                 |
-|                           |           <- se                |
-|                           |                                |
-|                           |         XK1:                   |
-|                           |           <- s                 |
-|                           |           ...                  |
-|                           |           -> e                 |
-|                           |           <- e, ee, es         |
-|                           |           -> s, se             |
-|                           |                                |
-|                           |         X1K1:                  |
-|                           |           <- s                 |
-|                           |           ...                  |
-|                           |           -> e                 |
-|                           |           <- e, ee, es         |
-|                           |           -> s                 |
-|                           |           <- se                |
-|                           |                                |
-+---------------------------+--------------------------------+
-|     XX:                   |         X1X:                   | 
-|       -> e                |           -> e                 |
-|       <- e, ee, s, es     |           <- e, ee, s, es      |
-|       -> s, se            |           -> s                 |
-|                           |           <- se                |
-|                           |                                |
-|                           |         XX1:                   |
-|                           |           -> e                 |
-|                           |           <- e, ee, s          |
-|                           |           -> es, s, se         |
-|                           |                                |
-|                           |         X1X1:                  |
-|                           |           -> e                 |
-|                           |           <- e, ee, s          |
-|                           |           -> es, s             |
-|                           |           <- se                |
-|                           |                                |
-+---------------------------+--------------------------------+
-|     KN:                   |         K1N:                   |
-|       -> s                |           -> s                 |
-|       ...                 |           ...                  |
-|       -> e                |           -> e                 |
-|       <- e, ee, se        |           <- e, ee             |
-|                           |           -> se                |
-|                           |                                |
-+---------------------------+--------------------------------+
-|     KK:                   |         K1K:                   | 
-|       -> s                |           -> s                 |
-|       <- s                |           <- s                 |
-|       ...                 |           ...                  |
-|       -> e, es, ss        |           -> e, es             |
-|       <- e, ee, se        |           <- e, ee             |
-|                           |           -> se                |
-|                           |                                |
-|                           |         KK1:                   |
-|                           |           -> s                 |
-|                           |           <- s                 |
-|                           |           ...                  |
-|                           |           -> e                 |
-|                           |           <- e, ee, se, es     |
-|                           |                                |
-|                           |         K1K1:                  |
-|                           |           -> s                 |
-|                           |           <- s                 |
-|                           |           ...                  |
-|                           |           -> e                 |
-|                           |           <- e, ee, es         |
-|                           |           -> se                |
-|                           |                                |
-+---------------------------+--------------------------------+
-|     KX:                   |         K1X:                   |
-|       -> s                |           -> s                 |
-|       ...                 |           ...                  |
-|       -> e                |           -> e                 |
-|       <- e, ee, se, s, es |           <- e, ee, s, es      |
-|                           |           -> se                |
-|                           |                                |
-|                           |         KX1:                   |
-|                           |           -> s                 |
-|                           |           ...                  |
-|                           |           -> e                 |
-|                           |           <- e, ee, se, s      |
-|                           |           -> es                |
-|                           |                                |
-|                           |         K1X1:                  |
-|                           |           -> s                 |
-|                           |           ...                  |
-|                           |           -> e                 |
-|                           |           <- e, ee, s          |
-|                           |           -> se, es            |
-|                           |                                |
-|                           |                                |
-+---------------------------+--------------------------------+
-|     IN:                   |         I1N:                   |
-|       -> e, s             |           -> e, s              |
-|       <- e, ee, se        |           <- e, ee             |
-|                           |           -> se                |
-|                           |                                |
-+---------------------------+--------------------------------+
-|     IK:                   |         I1K:                   |
-|       <- s                |           <- s                 |
-|       ...                 |           ...                  |
-|       -> e, es, s, ss     |           -> e, es, s          |
-|       <- e, ee, se        |           <- e, ee             |
-|                           |           -> se                |
-|                           |                                |
-|                           |         IK1:                   |
-|                           |           <- s                 |
-|                           |           ...                  |
-|                           |           -> e, s              |
-|                           |           <- e, ee, se, es     |
-|                           |                                |
-|                           |         I1K1:                  |
-|                           |           <- s                 |
-|                           |           ...                  |
-|                           |           -> e, s              |  
-|                           |           <- e, ee, es         |
-|                           |           -> se                | 
-|                           |                                |
-+---------------------------+--------------------------------+
-|     IX:                   |         I1X:                   | 
-|       -> e, s             |           -> e, s              |
-|       <- e, ee, se, s, es |           <- e, ee, s, es      |
-|                           |           -> se                |
-|                           |                                |
-|                           |         IX1:                   |
-|                           |           -> e, s              |
-|                           |           <- e, ee, se, s      |
-|                           |           -> es                |
-|                           |                                |
-|                           |         I1X1:                  |
-|                           |           -> e, s              |
-|                           |           <- e, ee, s          |
-|                           |           -> se, es            |
-|                           |                                |
-+---------------------------+--------------------------------+
-
-\newpage
-
-## 18.2. Security properties for deferred patterns
-
-The following table lists the the security properties for the PQNoise handshake
-and transport payloads for all the deferred patterns in the previous section.
-The security properties are labelled using the notation from [Section 7.7](#payload-security-properties).
-
-+--------------------------------------------------------------+
-|                              Source         Destination      |
-+--------------------------------------------------------------+
-|     NK1                                                      |                                 
-|       <- s                                                   |
-|       ...                                                    |                                 
-|       -> e                      0                0           |               
-|       <- e, ee, es              2                1           |               
-|       ->                        0                5           |               
-+--------------------------------------------------------------+
-|     NX1                                                      |             
-|       -> e                      0                0           |               
-|       <- e, ee, s               0                1           |               
-|       -> es                     0                3           |               
-|       ->                        2                1           |
-|       <-                        0                5           |
-+--------------------------------------------------------------+
-|     X1N                                                      |                                 
-|       -> e                      0                0           |               
-|       <- e, ee                  0                1           |               
-|       -> s                      0                1           |               
-|       <- se                     0                3           |               
-|       ->                        2                1           |
-+--------------------------------------------------------------+
-|     X1K                                                      |                                 
-|       <- s                                                   |                                 
-|       ...                                                    |                                 
-|       -> e, es                  0                2           |               
-|       <- e, ee                  2                1           |               
-|       -> s                      0                5           |               
-|       <- se                     2                3           |               
-|       ->                        2                5           |
-|       <-                        2                5           |
-+--------------------------------------------------------------+
-|     XK1                                                      |                                 
-|       <- s                                                   |                                 
-|       ...                                                    |                                 
-|       -> e                      0                0           |               
-|       <- e, ee, es              2                1           |               
-|       -> s, se                  2                5           |               
-|       <-                        2                5           |               
-+--------------------------------------------------------------+
-|     X1K1                                                     |                                 
-|       <- s                                                   |                                 
-|       ...                                                    |                                 
-|       -> e                      0                0           |               
-|       <- e, ee, es              2                1           |               
-|       -> s                      0                5           |               
-|       <- se                     2                3           |               
-|       ->                        2                5           |
-|       <-                        2                5           |
-+--------------------------------------------------------------+
-|     X1X                                                      |                                 
-|       -> e                      0                0           |               
-|       <- e, ee, s, es           2                1           |               
-|       -> s                      0                5           |               
-|       <- se                     2                3           |               
-|       ->                        2                5           |
-|       <-                        2                5           |
-+--------------------------------------------------------------+
-|     XX1                                                      |                                 
-|       -> e                      0                0           |               
-|       <- e, ee, s               0                1           |               
-|       -> es, s, se              2                3           |               
-|       <-                        2                5           |
-|       ->                        2                5           |
-+--------------------------------------------------------------+
-|     X1X1                                                     |                                 
-|       -> e                      0                0           |               
-|       <- e, ee, s               0                1           |               
-|       -> es, s                  0                3           |               
-|       <- se                     2                3           |               
-|       ->                        2                5           |
-|       <-                        2                5           |
-+--------------------------------------------------------------+
-|     K1N                                                      |                                 
-|       -> s                                                   |                                 
-|       ...                                                    |                                 
-|       -> e                      0                0           |               
-|       <- e, ee                  0                1           |               
-|       -> se                     2                1           |               
-|       <-                        0                5           |               
-+--------------------------------------------------------------+
-|     K1K                                                      |                                 
-|       -> s                                                   |                                 
-|       <- s                                                   |                                 
-|       ...                                                    |                                 
-|       -> e, es                  0                2           |               
-|       <- e, ee, se              2                1           |               
-|       -> se                     2                5           |               
-|       <-                        2                5           |               
-+--------------------------------------------------------------+
-|     KK1                                                      |                                 
-|       -> s                                                   |                                 
-|       <- s                                                   |                                 
-|       ...                                                    |                                 
-|       -> e                      0                0           |               
-|       <- e, ee, se, es          2                3           |               
-|       ->                        2                5           |               
-|       <-                        2                5           |               
-+--------------------------------------------------------------+
-|     K1K1                                                     |                                 
-|       -> s                                                   |                                 
-|       <- s                                                   |                                 
-|       ...                                                    |                                 
-|       -> e                      0                0           |               
-|       <- e, ee, es              2                1           |               
-|       -> se                     2                5           |               
-|       <-                        2                5           |               
-+--------------------------------------------------------------+
-|     K1X                                                      |                           
-|       -> s                                                   |                           
-|       ...                                                    |                                 
-|       -> e                      0                0           |               
-|       <- e, ee, s, es           2                1           |               
-|       -> se                     2                5           |               
-|       <-                        2                5           |               
-+--------------------------------------------------------------+
-|     KX1                                                      |                           
-|       -> s                                                   |                           
-|       ...                                                    |                                 
-|       -> e                      0                0           |               
-|       <- e, ee, se, s           0                3           |               
-|       -> es                     2                3           |               
-|       <-                        2                5           |               
-|       ->                        2                5           |
-+--------------------------------------------------------------+
-|     K1X1                                                     |                           
-|       -> s                                                   |                           
-|       ...                                                    |                                 
-|       -> e                      0                0           |               
-|       <- e, ee, s               0                1           |               
-|       -> se, es                 2                3           |               
-|       <-                        2                5           |               
-|       ->                        2                5           |
-+--------------------------------------------------------------+
-|     I1N                                                      |    
-|       -> e, s                   0                0           |         
-|       <- e, ee                  0                1           |         
-|       -> se                     2                1           |         
-|       <-                        0                5           |         
-+--------------------------------------------------------------+
-|     I1K                                                      |                        
-|       <- s                                                   |                        
-|       ...                                                    |                        
-|       -> e, es, s               0                2           |         
-|       <- e, ee                  2                1           |         
-|       -> se                     2                5           |         
-|       <-                        2                5           |         
-+--------------------------------------------------------------+
-|     IK1                                                      |                        
-|       <- s                                                   |                        
-|       ...                                                    |                        
-|       -> e, s                   0                0           |         
-|       <- e, ee, se, es          2                3           |         
-|       ->                        2                5           |         
-|       <-                        2                5           |         
-+--------------------------------------------------------------+
-|     I1K1                                                     |                        
-|       <- s                                                   |                        
-|       ...                                                    |                        
-|       -> e, s                   0                0           |         
-|       <- e, ee, es              2                1           |         
-|       -> se                     2                5           |         
-|       <-                        2                5           |         
-+--------------------------------------------------------------+
-|     I1X                                                      |                        
-|       -> e, s                   0                0           |         
-|       <- e, ee, s, es           2                1           |         
-|       -> se                     2                5           |         
-|       <-                        2                5           |         
-+--------------------------------------------------------------+
-|     IX1                                                      |                        
-|       -> e, s                   0                0           |         
-|       <- e, ee, se, s           0                3           |         
-|       -> es                     2                3           |         
-|       <-                        2                5           |         
-|       ->                        2                5           |         
-+--------------------------------------------------------------+
-|     I1X1                                                     |                        
-|       -> e, s                   0                0           |         
-|       <- e, ee, s               0                1           |         
-|       -> se, es                 2                3           |         
-|       <-                        2                5           |         
-|       ->                        2                5           |         
-+--------------------------------------------------------------+
-
-## 18.3. Pattern derivation rules
-
-The following rules were used to derive the one-way, fundamental, and deferred handshake patterns.
+While PQNoise hand-picked the fundamental handshake patterns, the following rules can be used to derive
+them anew.
 
 First, populate the pre-message contents as defined by the pattern name.
 
-Next populate the initiator's first message by applying the first rule from the below table which matches.  Then delete the matching rule and repeat this process until no more rules can be applied.  If this is a one-way pattern, it is now complete.
+Next populate the initiator's first message by applying the first rule from the below table
+which matches.  Then delete the matching rule and repeat this process until no more rules can
+be applied.
 
-Otherwise, populate the responder's first message in the same way.  Once no more responder rules can be applied, then switch to the initiator's next message and repeat this process, switching messages until no more rules can be applied by either party.
+Populate the responder's first message in the same way.  Once no more responder rules can be
+applied, then switch to the initiator's next message and repeat this process, switching messages
+until no more rules can be applied by either party.
 
 **Initiator rules:**
 
-  1. Send `"e"`.
-  2. Perform `"ee"` if `"e"` has been sent, and received.
-  3. Perform `"se"` if `"s"` has been sent, and `"e"` received. If initiator authentication is deferred, skip this rule for the first message in which it applies, then mark the initiator authentication as non-deferred.
-  4. Perform `"es"` if `"e"` has been sent, and `"s"` received. If responder authentication is deferred, skip this rule for the first message in which it applies, then mark the responder authentication as non-deferred.
-  5. Perform `"ss"` if `"s"` has been sent, and received, and `"es"` has been performed, and this is the first message, and initiator authentication is not deferred.
-  6. Send `"s"` if this is the first message and initiator is "I" or one-way "X".
-  7. Send `"s"` if this is not the first message and initiator is "X".
+  1. Send `"skem"` if `"s"` has been received.
+  2. Send `"e"`.
+  3. Send `"s"` if this is the first message and initiator is "I".
+  4. Send `"s"` if this is not the first message and initiator is "X".
 
 **Responder rules:**
 
-  1. Send `"e"`.
-  2. Perform `"ee"` if `"e"` has been sent, and received.
-  3. Perform `"se"` if `"e"` has been sent, and `"s"` received.  If initiator authentication is deferred, skip this rule for the first message in which it applies, then mark the initiator authentication as non-deferred.
-  4. Perform `"es"` if `"s"` has been sent, and `"e"` received.  If responder authentication is deferred, skip this rule for the first message in which it applies, then mark the responder authentication as non-deferred.
-  5. Send `"s"` if responder is "X".
+  1. Send `"ekem"` if `"e"` has been received.
+  2. Send `"skem"` if `"s"` has been received.
+  3. Send `"s"` if responder is "X".
 
 \newpage
 
 ## 18.4. Change log
 
+**Revision 1:**
 
-**Revision 34:**
-
- * Added official/unstable marking; the unstable only refers to the new deferred patterns, the rest of this document is considered stable.
-
- * Clarified DH() definition so that the identity element is an invalid value (not a generator), thus may be rejected.
-
- * Clarified ciphertext-indistinguishability requirement for AEAD schemes and added a rationale.
-
- * Clarified the order of hashing pre-message public keys.
-
- * Rewrote handshake patterns explanation for clarity.
-
- * Added new validity rule to disallow repeating the same DH operation.
-
- * Clarified the complex validity rule regarding ephemeral keys and key re-use.
-
- * Removed parenthesized list of keys from pattern notation, as it was redundant. 
-
- * Added deferred patterns.
-
- * Renamed "Authentication" and "Confidentiality" security properties to "Source" and "Destination" to avoid confusion.
-
- * **[SECURITY]** Added a new identity-hiding property, and changed identity-hiding property 3 to discuss an identity equality-check attack. 
-
- * Replaced "fallback patterns" concept with Bob-initiated pattern notation.
-
- * Rewrote section on compound protocols and pipes for clarity, including
-   clearer distinction between "switch protocol" and "fallback patterns".
-
- * De-emphasized "type byte" suggestion, and added a more general discussion of negotiation data.
-
- * **[SECURITY]** Added security considerations regarding static key reuse and PSK reuse.
-
- * Added pattern derivation rules to Appendix.
+ * Initial draft.
 
 \newpage
+
+# TODO: open issues
+
+All internal links need checking/fixing.
+
+Bibliography/citations need checking/fixing.
+
+Reintroduce `fallback` and deferred patterns? They weren't covered by PQNoise paper and the changes to handshake
+shape don't allow for a trivial 1:1 translation of the classical Noise patterns without a fresh security analysis.
 
 # 19.  References
