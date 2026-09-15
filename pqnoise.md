@@ -550,18 +550,18 @@ A `HandshakeState` responds to the following functions:
       * Fetches and deletes the next message pattern from `message_patterns`,
         then sequentially processes each token from the message pattern:
 
-          * For `"e"`: Sets `re` (which must be empty) to the next `DHLEN`
+          * For `"e"`: Sets `re` (which must be empty) to the next `KEM_KEY_LEN`
             bytes from the message.  Calls `MixHash(re.public_key)`. 
 
-          * For `"s"`: Sets `temp` to the next `DHLEN + 16` bytes of the message if
-            `HasKey() == True`, or to the next `DHLEN` bytes otherwise.  Sets `rs` (which must be empty)
-            to `DecryptAndHash(temp)`.
+          * For `"s"`: Sets `temp` to the next `KEM_KEY_LEN + 16` bytes of the message if
+            `HasKey() == True`, or to the next `KEM_KEY_LEN` bytes otherwise.
+            Sets `rs` (which must be empty) to `DecryptAndHash(temp)`.
 
           * For `"ekem"`: Sets `temp` to the next `KEM_CIPHERTEXT_LEN + 16` bytes of the message if
             `HasKey() == True`, or to the next `KEM_CIPHERTEXT_LEN` bytes otherwise. Calls
             `MixKey(DECAPS(e, DecryptAndHash(temp)))`.
 
-          * For `"ekem"`: Sets `temp` to the next `KEM_CIPHERTEXT_LEN + 16` bytes of the message if
+          * For `"skem"`: Sets `temp` to the next `KEM_CIPHERTEXT_LEN + 16` bytes of the message if
             `HasKey() == True`, or to the next `KEM_CIPHERTEXT_LEN` bytes otherwise. Calls
             `MixKey(DECAPS(s, DecryptAndHash(temp)))`.
 
@@ -1916,6 +1916,9 @@ until no more rules can be applied by either party.
 \newpage
 
 # TODO: open issues
+
+Description of SEEC is missing. Should it be required in the base spec, or an "advanced feature"
+for people who need the additional property it provides?
 
 All internal links need checking/fixing.
 
