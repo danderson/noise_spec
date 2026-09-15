@@ -158,10 +158,10 @@ higher-level protocol that contains type and length information.  PQNoise
 messages might encapsulate payloads that require parsing of some sort, but
 payloads are handled by the application, not by PQNoise.
 
-A PQNoise **transport message** is simply an AEAD ciphertext that is less than or
+A PQNoise **transport message** is an AEAD ciphertext that is less than or
 equal to 65535 bytes in length, and that consists of an encrypted payload plus
 16 bytes of authentication data.  The details depend on the AEAD cipher
-function, e.g. AES256-GCM, or ChaCha20-Poly1305, but typically the
+function, e.g. AES-256-GCM or ChaCha20Poly1305, but typically the
 authentication data is either a 16-byte authentication tag appended to the
 ciphertext, or a 16-byte synthetic IV prepended to the ciphertext.
 
@@ -172,9 +172,9 @@ payload which can be used to convey certificates or other handshake data, but
 can also contain a zero-length plaintext.
 
 Static public keys and payloads will be in cleartext if they are sent in a
-handshake prior to a KEM operation, and will be AEAD ciphertexts if they occur
-after a KEM operation.  (If PQNoise is being used with pre-shared symmetric keys,
-this rule is different; see [Section 9](#pre-shared-symmetric-keys)).
+handshake prior to a KEM encapsulation, and will be AEAD ciphertexts if they
+occur after a KEM encapsulation.  (If PQNoise is being used with pre-shared
+symmetric keys, this rule is different; see [Section 9](#pre-shared-symmetric-keys)).
 Like transport messages, AEAD ciphertexts will expand each encrypted field
 (whether static public key or payload) by 16 bytes.
 
@@ -233,11 +233,11 @@ PQNoise depends on the following **KEM functions** (and associated constants):
    May signal an error if `public_key` is not a valid KEM public key.
 
  * **`DECAPS(private_key, ciphertext)`**: Performs a KEM decapsulation of `ciphertext`
-   using `private_key`, and returns the same shared secret as the `ENCAPS` operation that
-   produced the ciphertext (a byte sequence of `KEM_SECRET_LEN`).
+   using `private_key`, and returns the same shared secret that the `ENCAPS` operation
+   produced, a byte sequence of `KEM_SECRET_LEN`.
    May signal an error if `private_key` is not a valid KEM private key.
    Invalid ciphertexts may be rejected explicitly (by signaling an error) or implicitly
-   (by returning a random secret unrelated to the one produced by `ENCAPS`).
+   (by returning a random secret value unrelated to the one produced by `ENCAPS`).
 
  * **`KEM_KEY_LEN`** = A constant specifying the size in bytes of KEM public keys.
 
@@ -246,7 +246,7 @@ PQNoise depends on the following **KEM functions** (and associated constants):
  * **`KEM_SECRET_LEN`** = A constant specifying the size in bytes of the shared secret
    produced by a KEM exchange. For security reasons, `KEM_SECRET_LEN` must be 32 or greater
    (**TODO**: why? This is lifted from classical Noise. Does the ck construction depend on each
-   new secret being large enough to be impossible to brute-force?)
+   new secret being a minimum size?)
 
 The KEM must be **correct** (for honestly generated keys and ciphertexts, `DECAPS` recovers
 the same shared secret as `ENCAPS` with overwhelmingly high probability) and **post-quantum
@@ -315,7 +315,7 @@ PQNoise defines additional functions based on the above `HASH()` function:
      * Returns the triple `(output1, output2, output3)`.
 
    Note that `temp_key`, `output1`, `output2`, and `output3` are all `HASHLEN` bytes in
-   length.  Also note that the `HKDF()` function is simply `HKDF` from [@rfc5869] 
+   length.  Also note that the `HKDF()` function is the `HKDF` from [@rfc5869] 
    with the `chaining_key` as HKDF `salt`, and zero-length HKDF `info`.
 
 # 5. Processing rules
@@ -341,12 +341,12 @@ object beneath it.  From lowest-layer to highest, the objects are:
    During the handshake phase each party has a single `HandshakeState`, which
    can be deleted once the handshake is finished.
 
-To execute a PQNoise protocol you `Initialize()` a `HandshakeState`.  During
-initialization you specify the handshake pattern, any local key pairs, and any
-public keys for the remote party you have knowledge of.  After `Initialize()`
-you call `WriteMessage()` and `ReadMessage()` on the `HandshakeState` to
-process each handshake message.  If any error is signaled by the `DECRYPT()` or
-`DECAPS()` functions then the handshake has failed and the `HandshakeState` is deleted.
+To execute a PQNoise protocol you `Initialize()` a `HandshakeState`.  You specify
+the handshake pattern, any local key pairs, and any public keys for the remote
+party you have knowledge of.  After `Initialize()` you call `WriteMessage()` and
+`ReadMessage()` on the `HandshakeState` to process each handshake message.  If
+any error is signaled by the `DECRYPT()` or `DECAPS()` functions then the
+handshake has failed and the `HandshakeState` is deleted.
 
 Processing the final handshake message returns two `CipherState` objects, the
 first for encrypting transport messages from initiator to responder, and the
